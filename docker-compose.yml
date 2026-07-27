@@ -1,0 +1,31 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: britam-role-library:latest
+    ############################################################
+    # ADR: No container_name — on your shared droplet this
+    # caused a naming conflict earlier. Compose auto-names it
+    # <project-dir>-web-1, which is collision-proof.
+    ############################################################
+    restart: unless-stopped
+    ports:
+      # host:container — app exposed on host port 6519
+      - "6519:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
