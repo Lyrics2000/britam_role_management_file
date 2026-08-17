@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Britam Group Role Library</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--green:#006B3C;--green-light:#E8F5EE;--gold:#C9A84C;--bg:#F7F6F2;--surface:#FFFFFF;--border:#E4E2DB;--text:#1A1A18;--text-mid:#555550;--text-light:#888880;--radius:10px;--shadow:0 2px 12px rgba(0,0,0,0.07)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app-header{background:var(--green);position:sticky;top:0;z-index:200;box-shadow:0 2px 20px rgba(0,0,0,0.15)}
+.header-inner{max-width:1200px;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:60px;gap:1rem}
+.brand{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.brand-logo{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:4px 10px;font-family:'DM Serif Display',serif;font-size:14px;color:#fff;letter-spacing:1px}
+.brand-title{font-size:15px;font-weight:500;color:#fff}
+.brand-sub{font-size:11px;color:rgba(255,255,255,0.65);margin-top:1px}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{padding:8px 14px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.7);border:none;background:none;cursor:pointer;border-radius:6px;transition:all 0.2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.nav-tab:hover{background:rgba(255,255,255,0.1);color:#fff}
+.nav-tab.active{background:rgba(255,255,255,0.2);color:#fff}
+.app-body{max-width:1200px;margin:0 auto;padding:1.5rem}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--green)}
+.stat-val{font-family:'DM Serif Display',serif;font-size:28px;color:var(--green);line-height:1}
+.stat-lbl{font-size:12px;color:var(--text-light);margin-top:4px}
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.section-head{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.section-head h2{font-size:14px;font-weight:600;color:var(--text)}
+.section-icon{width:30px;height:30px;background:var(--green-light);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1rem}
+.filter-bar input,.filter-bar select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s}
+.filter-bar input{flex:2;min-width:200px}
+.filter-bar select{flex:1;min-width:140px}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--green)}
+.bu-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
+.bu-tab{padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--text-mid);transition:all 0.2s;font-family:'DM Sans',sans-serif}
+.bu-tab:hover{border-color:var(--green);color:var(--green)}
+.bu-tab.active{background:var(--green);color:#fff;border-color:var(--green)}
+.roles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.role-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:all 0.2s}
+.role-card:hover{border-color:var(--green);box-shadow:0 4px 16px rgba(0,107,60,0.1);transform:translateY(-1px)}
+.rc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px}
+.rc-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.band-badge{font-size:10px;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;font-weight:500}
+.b1{background:#D1F5E0;color:#1A6B3C}.b2{background:#D6EAF8;color:#1B4F72}.b3{background:#EBD5F8;color:#5B2C6F}
+.b4{background:#FDEBD0;color:#7D5A00}.b5{background:#FDEDEC;color:#7B241C}.b6{background:#F2F3F4;color:#555}
+.b7{background:#EAF4FF;color:#1A5276}.b8{background:#FEF9E7;color:#7D6608}.b9{background:#F9F0FF;color:#6C3483}.b10{background:#E8F8F5;color:#1B6B4F}
+.rc-meta{font-size:11px;color:var(--text-light);margin-bottom:6px}
+.rc-desc{font-size:11px;color:var(--text-mid);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.no-results{text-align:center;color:var(--text-light);padding:3rem;font-size:13px;display:none}
+.compare-slots{display:grid;grid-template-columns:1fr 44px 1fr;gap:12px;align-items:start}
+.slot-label{font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.slot-search-wrap{position:relative}
+.slot-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.slot-input:focus{border-color:var(--green)}
+.slot-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:220px;overflow-y:auto;z-index:100;display:none;box-shadow:var(--shadow)}
+.slot-dropdown.open{display:block}
+.slot-opt{padding:9px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border)}
+.slot-opt:last-child{border-bottom:none}
+.slot-opt:hover{background:var(--green-light)}
+.slot-opt-name{font-weight:600;color:var(--text)}
+.slot-opt-meta{font-size:11px;color:var(--text-light);margin-top:2px}
+.selected-pill{display:none;background:var(--green-light);border:1px solid rgba(0,107,60,0.2);border-radius:8px;padding:8px 12px;margin-top:8px;position:relative}
+.selected-pill.show{display:block}
+.pill-name{font-size:12px;font-weight:600;color:var(--green);padding-right:20px}
+.pill-meta{font-size:11px;color:var(--text-mid);margin-top:3px}
+.pill-clear{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;line-height:1}
+.vs-col{display:flex;align-items:center;justify-content:center;padding-top:30px}
+.vs-badge{width:36px;height:36px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.compare-table-wrap{margin-top:1.25rem;display:none;overflow-x:auto}
+.compare-table-wrap.show{display:block}
+.compare-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.compare-table th{background:var(--green);color:#fff;padding:9px 12px;text-align:left;font-weight:600}
+.compare-table th:first-child{width:130px}
+.compare-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);word-wrap:break-word}
+.compare-table tr:nth-child(even) td{background:var(--bg)}
+.compare-table td:first-child{font-weight:600;color:var(--text-mid);font-size:11px;text-transform:uppercase;letter-spacing:0.3px}
+.cp-intro{font-size:13px;color:var(--text-mid);margin-bottom:1.25rem;line-height:1.6}
+.cp-form{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+.cp-field label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.cp-field select,.cp-field input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.cp-field select:focus,.cp-field input:focus{border-color:var(--green)}
+.cp-btn{background:var(--green);color:#fff;border:none;border-radius:8px;padding:10px 28px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.cp-btn:hover{opacity:0.88}
+.cp-result{display:none;margin-top:1.5rem}
+.cp-result.show{display:block}
+.path-header{display:flex;align-items:center;gap:14px;margin-bottom:1.5rem;padding:1rem 1.25rem;background:var(--green-light);border-radius:var(--radius);border:1px solid rgba(0,107,60,0.15)}
+.path-header h3{font-size:14px;font-weight:600;color:var(--green)}
+.path-header p{font-size:12px;color:var(--text-mid);margin-top:3px}
+.path-steps{display:flex;flex-direction:column}
+.path-step{display:flex;gap:16px;align-items:flex-start}
+.step-spine{display:flex;flex-direction:column;align-items:center}
+.step-dot{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.step-dot.current{background:var(--gold)}
+.step-line{width:2px;background:var(--border);flex:1;min-height:24px;margin:4px 0}
+.step-body{padding-bottom:1.25rem;flex:1;min-width:0}
+.step-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);margin-bottom:4px}
+.step-role{font-size:14px;font-weight:600;color:var(--text)}
+.step-meta{font-size:11px;color:var(--text-mid);margin-top:3px}
+.step-gaps{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.gap-item{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text-mid);line-height:1.4}
+.gap-ok{color:#1A6B3C;font-weight:700;flex-shrink:0}
+.gap-miss{color:#C0392B;font-weight:700;flex-shrink:0}
+.reco-box{margin-top:1.25rem;padding:1rem 1.25rem;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)}
+.reco-box h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);margin-bottom:10px}
+.reco-box ul{font-size:12px;color:var(--text-mid);line-height:1.9;padding-left:1.25rem}
+.cp-actions{display:flex;gap:10px;margin-top:1rem;flex-wrap:wrap}
+.cp-action-btn{padding:8px 18px;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.cp-action-btn.primary{background:var(--green);color:#fff;border:none}
+.cp-action-btn.secondary{background:none;border:1px solid var(--green);color:var(--green)}
+.cp-action-btn:hover{opacity:0.85}
+.ai-msgs{min-height:80px;max-height:240px;overflow-y:auto;margin-bottom:12px;padding:4px}
+.ai-msg{font-size:13px;padding:9px 13px;border-radius:8px;margin-bottom:8px;line-height:1.6}
+.ai-msg.user{background:var(--bg);color:var(--text);text-align:right;border:1px solid var(--border)}
+.ai-msg.bot{background:var(--green-light);color:#1A3D2B;border:1px solid rgba(0,107,60,0.15)}
+.ai-input-row{display:flex;gap:8px}
+.ai-input-row input{flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+.ai-input-row input:focus{border-color:var(--green)}
+.ai-send{padding:9px 20px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ai-notice{font-size:12px;color:var(--text-mid);margin-top:10px;padding:10px 14px;background:#FFF8E1;border-radius:8px;border:1px solid #FFD54F;line-height:1.5}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:14px;padding:1.75rem;max-width:660px;width:100%;max-height:88vh;overflow-y:auto;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.22)}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text-mid)}
+.modal-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);margin-bottom:4px;padding-right:2rem}
+.modal-bu{font-size:12px;color:var(--green);font-weight:600;margin-bottom:1.25rem}
+.modal-section{margin-bottom:1rem}
+.modal-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--text-light);margin-bottom:6px}
+.modal-section-body{font-size:13px;color:var(--text-mid);line-height:1.6;background:var(--bg);border-radius:8px;padding:10px 14px}
+.focus-tags{display:flex;flex-wrap:wrap;gap:6px}
+.focus-tag{font-size:11px;padding:3px 10px;background:var(--green-light);color:var(--green);border-radius:12px;font-weight:500}
+.modal-actions{display:flex;gap:8px;margin-top:1.25rem;flex-wrap:wrap}
+.modal-btn{padding:8px 16px;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif}
+.modal-btn.primary{background:var(--green);color:#fff;border:none}
+.modal-btn.secondary{background:none;border:1px solid var(--green);color:var(--green)}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:300;box-shadow:0 -2px 16px rgba(0,0,0,0.10)}
+.bottom-nav-inner{display:flex;align-items:stretch;height:62px}
+.bottom-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text-light);transition:color 0.2s;padding:0;-webkit-tap-highlight-color:transparent}
+.bottom-nav-btn.active{color:var(--green)}
+.bottom-nav-btn.active .bnav-icon{background:var(--green-light)}
+.bnav-icon{width:40px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:17px;transition:background 0.2s}
+.bnav-label{font-size:10px;font-weight:500;letter-spacing:0.2px}
+@media print{
+  .app-header,.filter-bar,.bu-tabs,.ai-input-row,.ai-notice,.modal-overlay,.nav-tabs,.cp-btn,.cp-actions,.bottom-nav{display:none!important}
+  .section-card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+  .cp-result{display:block!important}
+}
+@media(max-width:720px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .compare-slots{grid-template-columns:1fr}
+  .vs-col{display:none}
+  .cp-form{grid-template-columns:1fr}
+  .nav-tabs{display:none}
+  .bottom-nav{display:block}
+  .app-body{padding:1rem 1rem 76px}
+  .header-inner{height:auto;padding:.75rem 1rem}
+  .stat-val{font-size:22px}
+  .roles-grid{grid-template-columns:1fr}
+  .filter-bar{flex-direction:column;gap:8px}
+  .filter-bar input,.filter-bar select{min-width:100%;flex:none}
+  .bu-tabs{gap:5px}
+  .bu-tab{font-size:11px;padding:4px 10px}
+  .modal-box{padding:1.25rem;max-height:92vh;margin:0;border-radius:14px 14px 0 0;position:fixed;bottom:62px;left:0;right:0;max-width:100%}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .compare-table-wrap{overflow-x:auto}
+  .compare-table th:first-child{width:85px}
+  .compare-table th,.compare-table td{font-size:11px;padding:7px 8px}
+  .section-card{padding:1rem}
+  .cp-intro{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">BRITAM</div>
+      <div>
+        <div class="brand-title">Group Role Library</div>
+        <div class="brand-sub">7 Countries &middot; All BUs &amp; Functions &middot; 2026 Edition</div>
+      </div>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="showPage('browse')">&#128269; Browse Roles</button>
+      <button class="nav-tab" onclick="showPage('compare')">&#8644; Compare Roles</button>
+      <button class="nav-tab" onclick="showPage('career')">&#127919; My Career Path</button>
+      <button class="nav-tab" onclick="showPage('ai')">&#129302; AI Assistant</button>
+    </nav>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val" id="stat-roles">0</div><div class="stat-lbl">Total Roles</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-bus">0</div><div class="stat-lbl">BUs / Functions</div></div>
+    <div class="stat-card"><div class="stat-val" id="stat-bands">0</div><div class="stat-lbl">Job Bands</div></div>
+    <div class="stat-card"><div class="stat-val">7</div><div class="stat-lbl">Countries</div></div>
+  </div>
+
+  <!-- BROWSE -->
+  <div id="page-browse">
+    <div class="section-card">
+      <div class="filter-bar">
+        <input type="text" id="search" placeholder="Search by role name, skill, qualification..." oninput="filterRoles()">
+        <select id="bu-filter" onchange="filterRoles()"><option value="">All BUs / Functions</option></select>
+        <select id="band-filter" onchange="filterRoles()"><option value="">All bands</option></select>
+        <select id="level-filter" onchange="filterRoles()"><option value="">All leadership levels</option></select>
+      </div>
+      <div class="bu-tabs" id="bu-tabs"></div>
+      <div class="roles-grid" id="roles-grid"></div>
+      <div class="no-results" id="no-results">No roles found matching your search.</div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div id="page-compare" style="display:none">
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-icon">&#8644;</div>
+        <h2>Compare two roles side by side</h2>
+      </div>
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:1.25rem">Search and select any two roles to see a full comparison of qualifications, experience, focus areas, and KPIs.</p>
+      <div class="compare-slots">
+        <div>
+          <div class="slot-label">Role A</div>
+          <div class="slot-search-wrap">
+            <input class="slot-input" type="text" id="search-a" placeholder="Type a role name..." autocomplete="off" oninput="searchSlot('a')" onfocus="openDrop('a')">
+            <div class="slot-dropdown" id="drop-a"></div>
+          </div>
+          <div class="selected-pill" id="sel-a">
+            <button class="pill-clear" onclick="clearSlot('a')">&#215;</button>
+            <div class="pill-name" id="sel-a-name"></div>
+            <div class="pill-meta" id="sel-a-meta"></div>
+          </div>
+        </div>
+        <div class="vs-col"><div class="vs-badge">VS</div></div>
+        <div>
+          <div class="slot-label">Role B</div>
+          <div class="slot-search-wrap">
+            <input class="slot-input" type="text" id="search-b" placeholder="Type a role name..." autocomplete="off" oninput="searchSlot('b')" onfocus="openDrop('b')">
+            <div class="slot-dropdown" id="drop-b"></div>
+          </div>
+          <div class="selected-pill" id="sel-b">
+            <button class="pill-clear" onclick="clearSlot('b')">&#215;</button>
+            <div class="pill-name" id="sel-b-name"></div>
+            <div class="pill-meta" id="sel-b-meta"></div>
+          </div>
+        </div>
+      </div>
+      <div class="compare-table-wrap" id="compare-table-wrap">
+        <table class="compare-table" id="compare-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CAREER PATH -->
+  <div id="page-career" style="display:none">
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-icon">&#127919;</div>
+        <h2>Build my individual career path</h2>
+      </div>
+      <p class="cp-intro">Tell us where you are today and where you want to go. We will map out the steps between your current role and your target, highlight the qualifications and experience you still need, and give you a personalised action plan to take into your next performance review.</p>
+      <div class="cp-form">
+        <div class="cp-field">
+          <label>My current role</label>
+          <select id="cp-current"><option value="">Select your current role...</option></select>
+        </div>
+        <div class="cp-field">
+          <label>My target role</label>
+          <select id="cp-target"><option value="">Select your target role...</option></select>
+        </div>
+        <div class="cp-field">
+          <label>My years of total experience</label>
+          <input type="number" id="cp-years" placeholder="e.g. 5" min="0" max="45">
+        </div>
+        <div class="cp-field">
+          <label>My highest qualification</label>
+          <select id="cp-qual">
+            <option value="">Select...</option>
+            <option value="diploma">Diploma / Certificate</option>
+            <option value="bachelor">Bachelor's Degree</option>
+            <option value="masters">Master's Degree</option>
+            <option value="professional">Professional qualification only (CPA, ACCA, CIM, etc.)</option>
+            <option value="both">Bachelor's + Professional qualification</option>
+            <option value="masters-prof">Master's + Professional qualification</option>
+          </select>
+        </div>
+      </div>
+      <button class="cp-btn" onclick="buildCareerPath()">Generate my career path &#8594;</button>
+      <div class="cp-result" id="cp-result"></div>
+    </div>
+  </div>
+
+  <!-- AI ASSISTANT -->
+  <div id="page-ai" style="display:none">
+    <div class="section-card">
+      <div class="section-head">
+        <div class="section-icon">&#129302;</div>
+        <h2>AI Role Assistant</h2>
+      </div>
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:1rem">Ask anything about roles, qualifications, career paths, or competencies across all Britam BUs and Functions.</p>
+      <div class="ai-msgs" id="ai-msgs">
+        <div class="ai-msg bot">Hello! I can answer questions about any role in the Britam Role Library. Try asking:<br><br>
+        &bull; &ldquo;What qualifications do I need to become a Finance Director?&rdquo;<br>
+        &bull; &ldquo;What is the difference between Band 3 and Band 5?&rdquo;<br>
+        &bull; &ldquo;What roles can I progress to from HR Business Partner?&rdquo;<br>
+        &bull; &ldquo;What competencies does a Head of Compliance need?&rdquo;</div>
+      </div>
+      <div class="ai-input-row">
+        <input type="text" id="ai-q" placeholder="Ask about roles, qualifications, career paths..." onkeydown="if(event.key==='Enter')askAI()">
+        <button class="ai-send" onclick="askAI()">Ask &#8594;</button>
+      </div>
+      <div class="ai-notice">
+        &#9888;&#65039; <strong>AI Assistant setup required.</strong> To enable this feature, your IT team needs to add an Anthropic API key to this file (one line of code in the script section). All other features &mdash; Browse, Compare, and My Career Path &mdash; work fully without it.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bottom-nav-btn active" id="bnav-browse" onclick="showPage('browse')">
+      <div class="bnav-icon">&#128269;</div>
+      <span class="bnav-label">Browse</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-compare" onclick="showPage('compare')">
+      <div class="bnav-icon">&#8644;</div>
+      <span class="bnav-label">Compare</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-career" onclick="showPage('career')">
+      <div class="bnav-icon">&#127919;</div>
+      <span class="bnav-label">Career</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-ai" onclick="showPage('ai')">
+      <div class="bnav-icon">&#129302;</div>
+      <span class="bnav-label">AI Chat</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ROLE DETAIL MODAL -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&#215;</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const ROLES = [
+  {bu:"Foundation & IR",pos:"Director Strategy & Investor Relations",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"15+ years, 5 in senior management",quals:"Bachelor's in Finance/Communication/Marketing; MBA advantage; CPA/CFA/ACCA advantage",desc:"Leadership role responsible for formulating and executing the overall Group strategy across Britam. Integrates Investor Relations, branding, and strategy PMO.",focus:"Strategy formulation,Investor Relations,ESG,Projects Management",kras:"Strategic oversight, Stakeholder management, Customer Satisfaction, Cost Management",reports:"Sustainability & IR Manager, Business Strategy Support Analyst, EPMO Lead"},
+  {bu:"Foundation & IR",pos:"Sustainability & IR Manager",band:"Band 5",bandN:5,level:"Leader of Leaders",exp:"5 years in sustainability (ESG) and investor relations",quals:"Bachelor's in business/finance; Masters advantage; GRI/CSP/CRM certification",desc:"Develops and implements a comprehensive ESG strategy aligned with corporate strategy, mission and values.",focus:"Investor Relations,ESG",kras:"ESG Strategy, AGM compliance, Sustainability reporting, Investor engagement",reports:"None"},
+  {bu:"Foundation & IR",pos:"EPMO Lead",band:"Band 5",bandN:5,level:"Leader of Leaders",exp:"5 years in business planning and strategic analysis",quals:"Bachelor's in business; CPA/CFA/ACCA advantage",desc:"Supports the Group Head of Strategy to drive implementation of the strategic plan by coordinating strategic initiatives.",focus:"Projects Management,Strategy implementation",kras:"Strategy refreshers, EPMO model, Project Management Skills",reports:"None"},
+  {bu:"Foundation & IR",pos:"Business Strategy Support Analyst",band:"Band 6.2",bandN:6.2,level:"Emerging Leader",exp:"3-5 years relevant experience",quals:"Bachelor's/Graduate's in business/computer science/economics/statistics",desc:"Provides relevant insights to help the organisation make better decisions and identify new growth initiatives.",focus:"Data Analysis,Reporting",kras:"Strategic insights, Resource alignment, Decision making culture",reports:"None"},
+  {bu:"Internal Audit",pos:"Head of Internal Audit",band:"Band 3",bandN:3,level:"Change Leader",exp:"8-10 years, 4-5 in managerial capacity",quals:"Bachelor's in Finance/Accounting; MBA advantage; CPA(K)/ACCA/CISA/CIA",desc:"Integrates audit services to provide assurance on adequacy and effectiveness of internal controls across the Group.",focus:"Organisational governance,Risk Management,Business Leadership",kras:"Audit Plan Coverage, Quality Assurance, Staff Capacity",reports:"IS Audit Manager, Internal Audit Managers"},
+  {bu:"Internal Audit",pos:"Information Systems Audit Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"7-10 years, 3 in management, 4+ in IS audit",quals:"Bachelor's in CS/BBIT; CISA required; CPA(K)/ACCA/CIA",desc:"Manages full scope of Information Systems Audits for the Group, providing assurance on IT security and controls.",focus:"IS Audit,Risk Management,Engagement Planning",kras:"Audit Plan Coverage, IT Risk management, Quality Assurance",reports:"IS Auditor, Project Implementations Auditor"},
+  {bu:"Internal Audit",pos:"Internal Audit Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"7-10 years, 3 in managerial capacity",quals:"Bachelor's in Finance/Accounting; MBA advantage; CPA(K)/ACCA/CISA/CIA",desc:"Coordinates operational audits at Britam and evaluates effectiveness of internal controls based on risk-based audit plan.",focus:"Risk Management,Engagement Planning,Fraud Consideration",kras:"Audit Plan Coverage, Quality Assurance, Staff Capacity",reports:"Internal Auditors"},
+  {bu:"Internal Audit",pos:"Senior Internal Auditor",band:"Band 6.2",bandN:6.2,level:"Emerging Leader",exp:"4-6 years in audit",quals:"Bachelor's; CISA/CRISC/CISM; CPA(K)/ACCA",desc:"Plans and conducts audits on Information and Systems in line with the audit plan.",focus:"Risk Management,Engagement,Fraud Consideration",kras:"Audit Plan Coverage, Quality Assurance",reports:"None"},
+  {bu:"Internal Audit",pos:"Internal Auditor",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3 years in audit",quals:"Bachelor's; CPA(K) required; CIA/CISA/CFA advantage",desc:"Conducts internal audits in line with the audit plan or as requested by the board or audit committee.",focus:"Audit,Internal Controls",kras:"Audit Plan Coverage, Quality Assurance",reports:"None"},
+  {bu:"CX",pos:"Director - Customer Experience, Brand & Marketing",band:"Band 1",bandN:1,level:"Leaders of Leaders",exp:"15+ years, 8 in senior management",quals:"Bachelor's in business; Masters advantage; CIM professional qualification",desc:"Oversees development and implementation of company-wide strategies that improve customer relations, marketing and brand loyalty.",focus:"Customer Experience,Brand & Communication,Marketing",kras:"Group NPS, CSAT, Brand Equity Score, Brand Net Promoter Score",reports:"Head of Marketing, Head of Service Quality, Brand & Comms Manager"},
+  {bu:"CX",pos:"Head of Marketing",band:"Band 3",bandN:3,level:"Change Leader",exp:"12-15 years, 4 in senior management",quals:"Bachelor's in business; Masters advantage; CIM qualification",desc:"Oversight of marketing and communications strategies, coordinating implementation of marketing activities and campaigns.",focus:"Marketing",kras:"New customers onboarded, Revenue growth from campaigns, ROI on marketing spend",reports:"Digital Marketing Manager, Marketing Managers, Senior Marketing Executive"},
+  {bu:"CX",pos:"Head of Service Quality",band:"Band 3",bandN:3,level:"Change Leader",exp:"12-15 years, 4 in senior management",quals:"Bachelor's in business; Masters advantage; CIM qualification",desc:"Drives service excellence aligned to the Group CX Strategy across the organization and all customer touch points.",focus:"Service Quality,Governance",kras:"Group NPS, CSAT, Call Service Levels, Complaints Management Score",reports:"Contact Center Manager, AM Service Experience"},
+  {bu:"CX",pos:"Contact Center Manager",band:"Band 5",bandN:5,level:"Change Leader",exp:"7-10 years running a Contact Centre in financial services",quals:"University degree in social science/business; Customer Experience certification",desc:"Drives provision of consistently high-quality customer experience through the Customer Contact Centre and Service Centre Teams.",focus:"Customer Experience",kras:"First Contact Resolution, Customer NPS, SLA adherence",reports:"Assistant Manager Contact Centre"},
+  {bu:"CX",pos:"Marketing Executive",band:"Band 8",bandN:8,level:"Individual Leader",exp:"2-4 years",quals:"Bachelor's in Communication/Marketing; CIM diploma advantage",desc:"Responsible for effective and strategic coordination and execution of Corporate marketing campaigns and projects.",focus:"Marketing campaigns,Brand coordination",kras:"Brand Health Survey, Campaign ROI, Customer engagement",reports:"None"},
+  {bu:"CX",pos:"Customer Service Assistants",band:"Band 9",bandN:9,level:"Individual Leader",exp:"0-2 years",quals:"Bachelor's in related field",desc:"Delivers exceptional customer experience at the service centre, putting the needs of customers first.",focus:"Customer Experience",kras:"Abandon rate, SLA Breaches, Transactional NPS, CSI",reports:"None"},
+  {bu:"IB",pos:"Regional CEO",band:"Band 1",bandN:1,level:"Leaders of Leaders",exp:"15+ years, 8 in senior management in financial services",quals:"MBA; Bachelor's in business; ACII/FLMI/IIK certification",desc:"Ensures revenue and profitability growth of Britam Insurance Businesses outside of Kenya, working with country CEOs.",focus:"Revenue and profitability,Country strategies,Leadership",kras:"Revenue growth, Profitability, Regulatory relationships",reports:"Country CEOs, Group Technical Manager, Administrator"},
+  {bu:"IB",pos:"Business Analyst (IB)",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"4-6 years in business planning and strategic analysis",quals:"Bachelor's in Business/Economics/Strategic Management",desc:"Provides business analysis, project coordination and reporting pertaining to international insurance business.",focus:"Business Data Analysis,Projects Coordination,Reporting",kras:"Analysis quality, Reporting timeliness, Project coordination",reports:"None"},
+  {bu:"GMD Office",pos:"Executive Assistant",band:"Band 6.2",bandN:6.2,level:"Team Leader",exp:"4-6 years as PA to Head of Department",quals:"University degree in any discipline",desc:"Provides comprehensive and highly professional executive administrative support to the GMD and manages the GMD's office operations.",focus:"Scheduling meetings,Office supplies management,Records keeping",kras:"Optimize costs, Monthly expense reports, Executive assignments, Travel logistics",reports:"Drivers"},
+  {bu:"GMD Office",pos:"Driver",band:"Band 10",bandN:10,level:"Individual Leader",exp:"7+ years driving VIPs; valid driving license class B, C, E",quals:"Minimum O-level; Trade Test Certificate in Motor-Vehicle Maintenance",desc:"Ensures safe and efficient transportation of the GMD and guests, and maintains the assigned vehicle.",focus:"Driving,Vehicle maintenance,Administrative duties",kras:"Timely pick-up/drop-offs, Vehicle maintenance, Safety compliance",reports:"None"},
+  {bu:"Risk & Compliance",pos:"Director, Risk & Compliance",band:"Band 1",bandN:1,level:"Leaders of Leaders",exp:"15+ years, 5 in senior leadership in risk & compliance",quals:"Bachelor's in Finance/Business; Master's; Risk Management accreditations",desc:"Ensures group-wide risks are understood and managed within risk appetite and ensures group-wide compliance with regulatory requirements.",focus:"Compliance,Risk Governance,Fraud Control",kras:"Risk support satisfaction, Fraud prevention, Governance achievement",reports:"Head of Compliance, Head of ERM, Head of Forensic Services"},
+  {bu:"Risk & Compliance",pos:"Head of Compliance",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 4 in managerial role",quals:"Bachelor's in Commerce/Risk/Law; CPA(K)/ACAMS/CISA/LLB/ICA",desc:"Develops and monitors compliance programs, implementing policies and procedures to achieve compliance with regulations.",focus:"Regulatory Compliance,AML,Data Protection,Ethics",kras:"Nil compliance penalties, Audit findings, Staff retention",reports:"Senior Compliance Officer, AM Compliance"},
+  {bu:"Risk & Compliance",pos:"Head of Enterprise Risk Management",band:"Band 3",bandN:3,level:"Change Leader",exp:"8-10 years, 4 in managerial role",quals:"Bachelor's in actuarial/finance/business; CPA(K)/ACCA/CISA/CFA",desc:"Provides oversight and direction for management of all risks across Britam Holdings and its subsidiaries.",focus:"Risk oversight,Risk assessment,Capital management,Stress testing",kras:"Surprise risks to PBT, Operational losses, Audit findings",reports:"Financial Risk Manager, Risk Manager, IT Risk Analyst, Risk Analyst"},
+  {bu:"Risk & Compliance",pos:"Head of Forensic Services",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 4-5 in managerial capacity",quals:"Bachelor's in Finance/Accounting; CPA(K)/ACCA/CISA/CFA/Digital Forensics",desc:"Leads and manages the Forensics function across Britam, designing and implementing fraud risk management programs.",focus:"Fraud Risk Prevention,Detection,Investigations",kras:"Prevented fraud losses, Fraud cases closed, FRM plan achievement",reports:"Forensic Manager, Forensics Data Analyst"},
+  {bu:"Risk & Compliance",pos:"Risk Analyst",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"2-4 years in risk management",quals:"Bachelor's in business/finance; Risk Management certifications",desc:"Assists the Risk Manager in identifying, assessing, mitigating and reporting risks and control gaps.",focus:"Risk identification,Assessment & Reporting,Internal controls",kras:"MRC score, KRIs monitoring, Compliance level, RCSA rollout",reports:"None"},
+  {bu:"Legal",pos:"Director Legal & Company Secretary",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"12+ years, 8 years post-admission, 7 as Company Secretary",quals:"Bachelor's in Law; Senior Advocate; CPS(K); Post-grad advantage",desc:"Responsible for legal affairs, providing counsel to the board and ensuring effective corporate governance requirements.",focus:"Corporate Governance,Board Management,Legal Counsel & Compliance",kras:"Compliance with laws, CoSec function quality, Corporate governance awareness",reports:"Head of Corporate Governance, Legal Managers, Administrator"},
+  {bu:"Legal",pos:"Head of Corporate Governance",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 6 years post-admission",quals:"Bachelor's in Law; Advocate of High Court; CPS(K); Post-grad advantage",desc:"Provides Company Secretarial services and ensures Board and Committee members receive support to discharge their duties.",focus:"Corporate Governance,Board Management,Legal Compliance",kras:"CoSec function quality, SPV Governance Framework, Subsidiaries governance",reports:"Legal Managers, Corporate Governance Associate"},
+  {bu:"Legal",pos:"Legal Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"6-8 years, 4 years post-admission",quals:"Bachelor's/Master's in Law; Advocate of High Court; CPS(K)",desc:"Works with legal management team in provision of legal advisory services and management of legal and contractual risks.",focus:"Legal Counsels,Legal Compliance,Contracts Management",kras:"Legal function cost, Audit recommendations, Legal awareness",reports:"Principle Legal Associate, Senior Legal Associate"},
+  {bu:"Legal",pos:"Senior Legal Associate",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3-5 years in commercial law firm or corporate environment",quals:"Bachelor's in Law; Advocate of High Court; CPS(K)",desc:"Provides legal support to the Centralized segment, formulating and implementing policies to ensure compliance with laws.",focus:"Policy formulation,Legal Compliance",kras:"Nil regulatory changes, Reviews of legislative developments, Fee savings",reports:"None"},
+  {bu:"ICT",pos:"GM, ICT & Operations",band:"Band 2",bandN:2,level:"Leaders of Leaders",exp:"15 years IT Services Management, 6 in managerial position",quals:"Bachelor's in IT/CS/Engineering/MIS; Masters advantage",desc:"Leads the ICT team in implementation of ICT strategies ensuring effective user policies, processes, and service desk.",focus:"IT operational efficiencies,Strategy,Data privacy",kras:"Technical debt, System uptime, Incident response time",reports:"Head of Infrastructure, Head of Development, Regional ICT Manager"},
+  {bu:"ICT",pos:"Head of Infrastructure and Service Delivery",band:"Band 3",bandN:3,level:"Change Leader",exp:"12 years IT Services Management, 4 in managerial position",quals:"Bachelor's in IT/CS; TOGAF; Cisco/MCSE; ITIL Expert; Azure/AWS/OCI",desc:"Leads ICT team in implementation strategies, ensuring cloud and data infrastructure operates efficiently.",focus:"IT Infrastructure,Service Delivery,Data privacy,Budget",kras:"System uptime, Incident response, Tech Strategy Alignment",reports:"Systems Administrator, Network Architect, DB Administrator"},
+  {bu:"ICT",pos:"Head - Development and Delivery",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 4-5 in IT service management",quals:"Master's in IT/CS; Cloud Development certifications; ITIL Intermediate; TOGAF/SAFe",desc:"Oversees and manages the company's System development, IT Business systems, and applications.",focus:"Application Management,Requirements Analysis,Software Development Leadership",kras:"On-time delivery, Budget adherence, Innovation, System uptime",reports:"Principal Software Developer, IT Business Partner, Solution Architect"},
+  {bu:"ICT",pos:"Cyber Security Specialist",band:"Band 6.2",bandN:6.2,level:"Emerging Leader",exp:"5+ years, 3-4 in management",quals:"Degree in CS/Electrical Eng; CISSP/CISM/CISA/CEH",desc:"Responsible for mitigating cybersecurity risks and leading IT security initiatives across the Group.",focus:"Security monitoring,Incident response,ICT asset protection",kras:"Security incidents, Intrusion attempts, MTTD, MTTR",reports:"None"},
+  {bu:"ICT",pos:"Software Developer",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3-5 years including DevOps, Middleware, cloud PAAS",quals:"Degree in CS; Java/Microsoft certified; Cloud-native certifications; ITIL Foundation",desc:"Works with departments to identify requirements and develop solutions including database design, workflows, and 3rd line support.",focus:"System Development,Integration Testing,Code review,Documentation",kras:"On-time delivery, Code quality, SLA adherence, Defect resolution",reports:"None"},
+  {bu:"P&D",pos:"Director Partnership & Digital Channels",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"12+ years, 6 in managerial capacity in financial/telecom",quals:"Business/IT degree; MBA advantage; AIIK/ACII insurance qualification",desc:"Manages and grows relationships with various partners to grow Group Britam business through digital channels and innovation.",focus:"Telco & Fintech Partnerships,Bancassurance,Digital and Direct Channels",kras:"Exponential customer increase, Customer experience, Profitability, Digital processes",reports:"Head of P&D Innovation, Head of Telco & Fintech, Head of Bancassurance"},
+  {bu:"P&D",pos:"Head of Bancassurance",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in management",quals:"Bachelor's in Commerce; MBA advantage; ACII/FLMI/IIK",desc:"Manages and grows relationships with Banks to grow Group Britam business through strong partnerships.",focus:"Bancassurance",kras:"Bancassurance revenues, Customer numbers, Loss ratios, Bank partner NPS",reports:"Banca Relationship Manager, Banca Asst. Manager, Regional Relationship Officers"},
+  {bu:"P&D",pos:"Head of Partnerships & Digital Innovation",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in managerial capacity",quals:"Business/IT degree; MBA advantage",desc:"Brings new products to market and drives uptake; responsible for automation and development of digital capabilities.",focus:"Partnerships & Digital Innovation",kras:"New products to market, Digital capabilities, Customer satisfaction",reports:"Innovations Officer, Product Analyst"},
+  {bu:"P&D",pos:"Product Analyst",band:"Band 5",bandN:5,level:"Change Leader",exp:"5-10 years with demonstrable track record",quals:"Business/IT/design degree; AIIK/ACII insurance qualification",desc:"Leads and executes the roadmap of enhancements and new feature development across Britam's Digital assets.",focus:"Products,Digital assets,Customer experience design",kras:"New products to market, Digital capabilities, Customer satisfaction",reports:"None"},
+  {bu:"Britam Connect",pos:"CEO Britam Connect",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"12+ years, 6 in managerial capacity",quals:"Bachelor's in business; Master's; ACII/FLMI/AIIK",desc:"Provides strategic leadership and grows Emerging Consumers business ensuring sustainability, profitability and returns to shareholders.",focus:"Innovation,Micro Insurance",kras:"Customer growth, EMC channels growth, Sales growth, Profitability",reports:"Manager Underwriting, Manager Claims, Administrator, Head of SMEs, Head of Innovation EMC"},
+  {bu:"Britam Connect",pos:"Head of Innovation EMC",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in managerial role",quals:"University degree in Engineering/IT/Commerce; ACII/FLMI/AIIK; PMP",desc:"Grows customer numbers by developing innovative solutions for individual and SME emerging consumers using agile innovation model.",focus:"Innovation",kras:"Customer growth, EMC top-line sales, Go-to-market time, New solutions",reports:"Digital Projects Analyst, Innovations Officer"},
+  {bu:"Britam Connect",pos:"Head of SMEs & Alternate Channels",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in managerial sales role",quals:"Bachelor's in business; Master's advantage; ACII/FLMI/AIIK",desc:"Develops new distribution channels, grows regional presence and diversifies product portfolio to reach SMEs and underserved customers.",focus:"SMEs & Alternate Channels",kras:"Customer growth, Channel growth, Regional sales, Revenue growth",reports:"Regional Business Development Officers"},
+  {bu:"Britam Connect",pos:"Business Development Officer",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3-4 years in financial sector",quals:"Bachelor's in business; ACII/AIIK advantage; COP compliant",desc:"Develops assigned channel(s), grows regional presence and provides sales support to drive EMC revenue and customer growth.",focus:"Business Development",kras:"Customer growth, EMC intermediaries growth, Sales growth",reports:"None"},
+  {bu:"Finance",pos:"Finance Director",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"15 years finance, 6 in senior management",quals:"Masters/Bachelor's in Finance/Accounting; CPA/ACCA; ICPAK member",desc:"Directs and oversees all financial activities including preparation of financial reports and forecasts for future business growth.",focus:"IFRS,Group Profits",kras:"Group WACC, Solvency compliance, PBT achievement, Regulatory compliance, IFRS 17",reports:"Chief Financial Officers, Head of Balance Sheet, Head of Procurement, Head of Tax"},
+  {bu:"Finance",pos:"Chief Financial Officer",band:"Band 2",bandN:2,level:"Leader of Leaders",exp:"10 years finance, 5 in senior management",quals:"Bachelor's in Finance/Accounting/Actuarial; CPA/ACCA; ICPAK member",desc:"Core mandate is provision of IFRS-compliant management and statutory financial reports for the Group and analysis.",focus:"IFRS,Business planning and forecasting",kras:"TATs, PBT, Expense ratio, Credit control, IFRS 17 implementation",reports:"Finance Managers"},
+  {bu:"Finance",pos:"Head of Tax",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in managerial capacity",quals:"Bachelor's in Accounting/Finance/Law; CPA/ACCA/CA; ICPAK member",desc:"Keeps abreast with tax regulation changes affecting the business and develops strategies to minimize tax obligations.",focus:"Tax",kras:"Tax advisory, Tax risk mitigation, Tax compliance, Tax reporting",reports:"None"},
+  {bu:"Finance",pos:"Head of Finance Shared Services",band:"Band 3",bandN:3,level:"Change Leader",exp:"7-10 years, 3-4 in managerial position",quals:"Degree in Accountancy/Finance/Actuarial; CPA/ACCA; ICPAK member",desc:"Provides overall financial management, business analysis and reporting across the group.",focus:"Finance Shared Services",kras:"Finance Business Support, Compliance, Stakeholder management",reports:"Assistant Finance Managers, Finance Managers"},
+  {bu:"Finance",pos:"Treasury Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"7-10 years, 3-4 in managerial position",quals:"Masters/Bachelor's in Accounting/Finance; CPA/ACCA; ICPAK member",desc:"Ensures corporate liquidity across Segments, forecasting cash flow positions, related borrowing needs, and investment of funds.",focus:"Treasury",kras:"Capital allocation, Group profitability, Statutory reporting, Liquidity ratio",reports:"Senior Treasury Accountant, Treasury Accountant"},
+  {bu:"Finance",pos:"Accountant",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3-4 years in similar position",quals:"Bachelor's in Commerce (Accounting); CPA(K)/ACCA; ICPAK member",desc:"Responsible for financial controls including receipting, account payables, bank, inter-company and general ledger reconciliation.",focus:"Operations & Financial Controls",kras:"Timely Financial Reporting, Cost savings, Reconciliation",reports:"None"},
+  {bu:"Finance",pos:"Accounts Assistant",band:"Band 9",bandN:9,level:"Individual Leader",exp:"1 year in similar position",quals:"Bachelor's in Commerce (Accounting); CPA Part 1",desc:"Processing of premium, new business, claims and benefits for Finance Business Partner Life.",focus:"Operations & Financial Controls",kras:"Timely Financial Reporting, Cost savings, Reconciliation",reports:"None"},
+  {bu:"Actuarial",pos:"Chief Actuary",band:"Band 2",bandN:2,level:"Leader of Leaders",exp:"8+ years in actuarial function, 2 in management",quals:"University degree in Actuarial Science/Stats/Math/Physics; Fellow of Institute of Actuaries; CPA/ACCA advantage",desc:"Contributes to developing and executing the company's business strategy through provision of superior actuarial advice and guidance.",focus:"Pricing and Product Development,Financial Reporting,Strategy,Data Analytics",kras:"Group PBT, Capitalization, Financial reporting accuracy, Regulatory compliance",reports:"Finance Director"},
+  {bu:"Actuarial",pos:"Senior Actuarial Manager",band:"Band 3",bandN:3,level:"Change Leader",exp:"6+ years relevant actuarial experience",quals:"Bachelor's in Actuarial Science/Stats/Math; Fellow of Institute of Actuaries",desc:"Provides actuarial support to business and participates in overall risk management for the company.",focus:"Pricing and Product Development,Financial Reporting,Data Analytics",kras:"Group PBT, Capitalization, Financial reporting, Regulatory compliance",reports:"Chief Actuary"},
+  {bu:"Actuarial",pos:"Data Scientist",band:"Band 6.2",bandN:6.2,level:"Emerging Leader",exp:"4+ years data science in e-commerce/digital/financial services",quals:"Degree in Data Science/Stats/Actuarial; Machine learning; R/Python/SQL coding",desc:"Monitors and analyses model performance, drives data analytics within the Group to develop customer-centric solutions.",focus:"Data Analytics,Dashboards,Model monitoring,Fraud prevention",kras:"Pricing optimisation, Churn prevention, Fraud prevention, Model accuracy",reports:"Senior Actuarial Managers"},
+  {bu:"Actuarial",pos:"Actuarial Analyst",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"2 years in actuarial or product development",quals:"University degree in Actuarial Science/Stats/Math; 4 actuarial exam papers",desc:"Assists in day-to-day running of the Actuarial unit by performing analysis, experience investigations, and preparing reports.",focus:"Pricing and Product Development,Financial Reporting",kras:"Capitalization, Model automation, Financial reporting accuracy, Exam progress",reports:"Actuarial and Product Development Specialists"},
+  {bu:"Actuarial",pos:"Actuarial Associates",band:"Band 8",bandN:8,level:"Individual Leader",exp:"Entry position",quals:"University degree in Actuarial Science/Stats/Math; 2 actuarial exam papers",desc:"Provides actuarial support to the assigned line of business and participates in overall risk management.",focus:"Pricing and Product Development,Financial Reporting",kras:"Capitalization, Financial reporting, Exam progress",reports:"None"},
+  {bu:"Procurement",pos:"Head of Procurement",band:"Band 3",bandN:3,level:"Change Leader",exp:"10+ years, 5 in manager level",quals:"Bachelor's in Procurement/Logistics; CIPS Diploma; KISM member; CPA/ACCA",desc:"Supports Britam's operational and strategic requirements by ensuring critical materials and services are obtained at the right quality and price.",focus:"Departmental leadership,Stakeholder Management,Cost Savings,Procurement governance",kras:"Cost savings, Contracts management, TATs, Audit management, Procurement governance",reports:"Senior Procurement Officer, Procurement Officer, Procurement Assistant"},
+  {bu:"Procurement",pos:"Senior Procurement Officer",band:"Band 6.2",bandN:6.2,level:"Emerging Leader",exp:"8+ years in procurement",quals:"Bachelor's in Procurement/Logistics; CIPS Diploma; KISM member",desc:"Responsible for cost-effective procurement of goods and services to support the company and manage all Britam Vendors.",focus:"Tendering,Supplier Evaluation,Reporting,Cost containment",kras:"Cost savings, Contracts management, Audit management, Vendor performance",reports:"Procurement Officers, Procurement Assistant"},
+  {bu:"Procurement",pos:"Procurement Officer",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"4-6 years in procurement",quals:"Bachelor's in Procurement/Logistics; CIPS Diploma; CPA/ACCA",desc:"Responsible for cost-effective procurement of goods and services in line with policy and managing all Britam Vendors.",focus:"Tendering,PO creation,Supplier Evaluation,Cost containment,Contracts management",kras:"Cost savings, TATs, Audit management",reports:"None"},
+  {bu:"Procurement",pos:"Procurement Assistant",band:"Band 9",bandN:9,level:"Individual Leader",exp:"2-3 years in procurement",quals:"Bachelor's in Procurement/Logistics; CIPS Certificate/Diploma; CPA/ACCA",desc:"Responsible for cost-effective procurement of goods and services in line with policy and managing Britam Vendors.",focus:"Tendering,Supplier Evaluation,Cost containment",kras:"Cost savings, TATs, Vendor performance",reports:"None"},
+  {bu:"Core HR",pos:"Director Human Resources",band:"Band 1",bandN:1,level:"Leader of Leaders",exp:"15+ years HR, 6 in management",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Responsible for leadership and development of the people strategy and how it impacts overall business performance.",focus:"HR Strategic Leadership",kras:"HR Internal Process NPS, Employee NPS, HR Service Delivery Score",reports:"Head of ER/EX & Culture, Head of HR Hub, Head of Talent, Total Rewards Manager, HR Business Partners"},
+  {bu:"Core HR",pos:"Head of Employee Relations, EX & Culture",band:"Band 3",bandN:3,level:"Change Leader",exp:"8-12 years, 3 in management",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Develops and implements policies to drive Employee Relations and responsible for disciplinary and grievance handling across the group.",focus:"Culture Transformation,Employee Experience,Disciplinary & Grievance,Performance Management",kras:"HR Internal Process NPS, Employee NPS, Employee turnover rate",reports:"Employee Relations Lead, ER/EX Associate I, EE Graphic Designer"},
+  {bu:"Core HR",pos:"Head of HR Hub & Shared Services",band:"Band 3",bandN:3,level:"Change Leader",exp:"8-12 years, 3 in management",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Reviews HR operations and processes to build the HR Services hub focusing on exceptional HR service delivery.",focus:"Total Rewards,Administration,HR Hub Services",kras:"HR Internal Process NPS, Employee NPS, HR Service Delivery Score, Compliance",reports:"Total Rewards Manager, HR Hub Associates"},
+  {bu:"Core HR",pos:"Head of Talent & Capability",band:"Band 3",bandN:3,level:"Change Leader",exp:"8-12 years, 3 in management",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Develops end-to-end talent management and acquisition strategy with focus on future talent, employer brand, and talent framework.",focus:"Resourcing & Talent Management,Learning & Development",kras:"Time to hire, Talent bench cover, Onboarding scores, Quality of hires, Learning completion rate",reports:"Learning & Development Lead, Talent & Capability Lead, Talent & Capability Associate I"},
+  {bu:"Core HR",pos:"HR Business Partner",band:"Band 4",bandN:4,level:"Change Leader",exp:"5-8 years experience",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Partners with and provides strategic HR partnership to leaders to facilitate achievement of the Company's Business strategy.",focus:"Performance & Productivity,Talent Management,Employee Experience,Transformation",kras:"Approved TCOE, Retention of top contributors, Employee engagement score, PIP Turnarounds",reports:"None"},
+  {bu:"Core HR",pos:"Total Rewards Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"5-8 years experience",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Practicing License",desc:"Provides leadership in design, development, and administration of total rewards programs in base pay, incentive pay, pension, and benefits.",focus:"Rewards,Benefits",kras:"Staff Cost to NEP Ratio, Approved FTE, EVP implementation, Total Rewards Framework",reports:"Total Rewards Analyst"},
+  {bu:"Core HR",pos:"Learning & Development Lead",band:"Band 5",bandN:5,level:"Change Leader",exp:"3-5 years",quals:"Masters/Bachelor's in HRM; CHRP Qualified; IHRM Associate",desc:"Accountable for successful design, development, and deployment of innovative learning and development solutions.",focus:"Learning & Development",kras:"Learning program quality, L&D impact metrics, Completion rates",reports:"None"},
+  {bu:"Core HR",pos:"Talent & Capability Associate I",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"2-4 years",quals:"Bachelor's degree; CHRP qualified; IHRM Associate",desc:"Provides support in talent acquisition, learning administration and development of talent aligned with the company's human capital strategy.",focus:"Resourcing,Onboarding,Learning & Development",kras:"Time to Hire, Onboarding survey score, Quality of Hire, Learning coordination",reports:"None"},
+  {bu:"Core HR",pos:"HR Administrator",band:"Band 6",bandN:6,level:"Emerging Leader",exp:"4-6 years",quals:"Bachelor's degree; CHRP qualified; IHRM Associate",desc:"Point of contact between HR directors, managers, internal departments, and external parties.",focus:"HR Services,Staff Records Management,HRMIS Management",kras:"HR Service Delivery Score, ERP Management, Staff Records",reports:"None"},
+  {bu:"Core HR",pos:"Total Rewards Analyst",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"2-4 years",quals:"Bachelor's degree; CHRP qualified; IHRM Associate",desc:"Implementation and administration of total rewards strategies including salary remuneration, pension mapping, and non-cash benefits.",focus:"Rewards administration,Payroll,Benefits",kras:"Payroll satisfaction, Nil audit findings, Leave liability reduction",reports:"None"},
+  {bu:"Core HR",pos:"Employee Relations Associate",band:"Band 8",bandN:8,level:"Individual Leader",exp:"1-2 years",quals:"Bachelor's degree; CHRP qualified",desc:"Supports creating and delivering people practices that develop positive working relationships between the organisation and people.",focus:"Culture,Employee Experience,Disciplinary & Grievance,Performance Management",kras:"HR Internal Process NPS, Employee NPS, TAT on disciplinary matters",reports:"None"},
+  {bu:"Admin",pos:"Administration Manager",band:"Band 4",bandN:4,level:"Change Leader",exp:"7-10 years, 3 in management",quals:"Bachelor's degree; relevant administration certification",desc:"Manages administration operations, office supplies, records management and support services across the organization.",focus:"Administration,Stakeholder Management,Operations",kras:"Administrative efficiency, Cost optimization, Records management",reports:"Administration Officer, Administration Associates"},
+  {bu:"Admin",pos:"Administration Officer",band:"Band 7",bandN:7,level:"Emerging Leader",exp:"3-5 years",quals:"Bachelor's degree",desc:"Provides administrative support, coordination services and office management.",focus:"Administration",kras:"Administrative support, Records management, Office efficiency",reports:"None"},
+  {bu:"Admin",pos:"Records Management Associate",band:"Band 9",bandN:9,level:"Individual Leader",exp:"1-2 years",quals:"Diploma or Bachelor's in Information Science or related",desc:"Manages physical and electronic records ensuring proper storage, retrieval and disposal of organizational records.",focus:"Records management,Document control",kras:"Timely filing, Records accuracy, Compliance",reports:"None"},
+  {bu:"Admin",pos:"Mailroom Officer",band:"Band 9",bandN:9,level:"Individual Leader",exp:"1-2 years",quals:"Minimum KCSE; relevant certificate",desc:"Manages incoming and outgoing mail and related courier and records services.",focus:"Mailroom operations,Records",kras:"Timely mail processing, Records management",reports:"None"}
+];
+
+const BUS = [...new Set(ROLES.map(r=>r.bu))];
+const BANDS = [...new Set(ROLES.map(r=>r.band))].sort((a,b)=>parseFloat(a.replace(/[^0-9.]/g,''))-parseFloat(b.replace(/[^0-9.]/g,'')));
+const LEVELS = [...new Set(ROLES.map(r=>r.level).filter(Boolean))];
+let currentBU = 'all';
+let slotA = null, slotB = null;
+
+function bc(b){
+  if(!b) return 'b6';
+  const n = parseFloat(b.replace(/[^0-9.]/g,''));
+  if(n<2) return 'b1'; if(n<3) return 'b2'; if(n<4) return 'b3';
+  if(n<5) return 'b4'; if(n<6) return 'b5'; if(n<7) return 'b6';
+  if(n<8) return 'b7'; if(n<9) return 'b8'; if(n<10) return 'b9';
+  return 'b10';
+}
+
+function init(){
+  document.getElementById('stat-roles').textContent = ROLES.length;
+  document.getElementById('stat-bus').textContent = BUS.length;
+  document.getElementById('stat-bands').textContent = BANDS.length;
+  const bf = document.getElementById('bu-filter');
+  BUS.forEach(b => bf.innerHTML += `<option value="${b}">${b}</option>`);
+  const bdf = document.getElementById('band-filter');
+  BANDS.forEach(b => bdf.innerHTML += `<option value="${b}">${b}</option>`);
+  const lf = document.getElementById('level-filter');
+  LEVELS.forEach(l => lf.innerHTML += `<option value="${l}">${l}</option>`);
+  const tabs = document.getElementById('bu-tabs');
+  tabs.innerHTML = `<button class="bu-tab active" onclick="setBU('all')">All roles</button>` +
+    BUS.map(b=>`<button class="bu-tab" onclick="setBU('${b.replace(/'/g,"\\'")}')">${b}</button>`).join('');
+  const cpC = document.getElementById('cp-current');
+  const cpT = document.getElementById('cp-target');
+  ROLES.forEach(r => {
+    const opt = `<option value="${r.pos}">${r.pos} (${r.bu} &middot; ${r.band})</option>`;
+    cpC.innerHTML += opt; cpT.innerHTML += opt;
+  });
+  filterRoles();
+}
+
+function setBU(v){
+  currentBU = v;
+  document.querySelectorAll('.bu-tab').forEach(t => t.classList.toggle('active', t.textContent===(v==='all'?'All roles':v)));
+  filterRoles();
+}
+
+function filterRoles(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const bu = document.getElementById('bu-filter').value;
+  const band = document.getElementById('band-filter').value;
+  const level = document.getElementById('level-filter').value;
+  const f = ROLES.filter(r => {
+    if(currentBU!=='all' && r.bu!==currentBU) return false;
+    if(bu && r.bu!==bu) return false;
+    if(band && r.band!==band) return false;
+    if(level && r.level!==level) return false;
+    if(q && ![r.pos,r.bu,r.band,r.level,r.desc,r.focus,r.quals].join(' ').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const grid = document.getElementById('roles-grid');
+  const none = document.getElementById('no-results');
+  if(!f.length){ grid.innerHTML=''; none.style.display='block'; return; }
+  none.style.display='none';
+  grid.innerHTML = f.map(r=>`<div class="role-card" onclick="openModal(${ROLES.indexOf(r)})">
+    <div class="rc-top"><div class="rc-name">${r.pos}</div><span class="band-badge ${bc(r.band)}">${r.band}</span></div>
+    <div class="rc-meta">${r.bu}${r.level?' &middot; '+r.level:''}</div>
+    <div class="rc-desc">${r.desc}</div>
+  </div>`).join('');
+}
+
+function showPage(p){
+  ['browse','compare','career','ai'].forEach(pg => document.getElementById('page-'+pg).style.display=pg===p?'block':'none');
+  document.querySelectorAll('.nav-tab').forEach((t,i) => t.classList.toggle('active',['browse','compare','career','ai'][i]===p));
+  ['browse','compare','career','ai'].forEach(pg => {
+    const btn = document.getElementById('bnav-'+pg);
+    if(btn) btn.classList.toggle('active', pg===p);
+  });
+}
+
+function searchSlot(slot){
+  const q = document.getElementById(`search-${slot}`).value.toLowerCase();
+  const drop = document.getElementById(`drop-${slot}`);
+  if(!q){ drop.classList.remove('open'); return; }
+  const m = ROLES.filter(r=>[r.pos,r.bu].join(' ').toLowerCase().includes(q)).slice(0,8);
+  if(!m.length){ drop.innerHTML='<div class="slot-opt" style="color:#aaa">No roles found</div>'; drop.classList.add('open'); return; }
+  drop.innerHTML = m.map(r=>`<div class="slot-opt" onclick="pickSlot('${slot}',${ROLES.indexOf(r)})"><div class="slot-opt-name">${r.pos}</div><div class="slot-opt-meta">${r.bu} &middot; ${r.band}${r.level?' &middot; '+r.level:''}</div></div>`).join('');
+  drop.classList.add('open');
+}
+function openDrop(slot){ if(document.getElementById(`search-${slot}`).value) searchSlot(slot); }
+function pickSlot(slot,idx){
+  const r = ROLES[idx];
+  if(slot==='a') slotA=r; else slotB=r;
+  document.getElementById(`search-${slot}`).value='';
+  document.getElementById(`drop-${slot}`).classList.remove('open');
+  document.getElementById(`sel-${slot}`).classList.add('show');
+  document.getElementById(`sel-${slot}-name`).textContent=r.pos;
+  document.getElementById(`sel-${slot}-meta`).innerHTML=`<span class="band-badge ${bc(r.band)}">${r.band}</span> &nbsp;${r.bu}`;
+  renderCompare();
+}
+function clearSlot(slot){
+  if(slot==='a') slotA=null; else slotB=null;
+  document.getElementById(`sel-${slot}`).classList.remove('show');
+  document.getElementById(`search-${slot}`).value='';
+  renderCompare();
+}
+function renderCompare(){
+  const wrap = document.getElementById('compare-table-wrap');
+  if(!slotA||!slotB){ wrap.classList.remove('show'); return; }
+  wrap.classList.add('show');
+  const rows=[['BU / Function','bu'],['Job band','band'],['Leadership level','level'],['Experience required','exp'],['Qualifications','quals'],['Role purpose','desc'],['Key focus areas','focus'],['Key performance measures','kras'],['Direct reports','reports']];
+  document.getElementById('compare-table').innerHTML=`<tr><th>Field</th><th>${slotA.pos}</th><th>${slotB.pos}</th></tr>`+rows.map(([l,k])=>`<tr><td>${l}</td><td>${slotA[k]||'&mdash;'}</td><td>${slotB[k]||'&mdash;'}</td></tr>`).join('');
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('.slot-search-wrap')) document.querySelectorAll('.slot-dropdown').forEach(d=>d.classList.remove('open')); });
+
+function buildCareerPath(){
+  const curPos = document.getElementById('cp-current').value;
+  const tgtPos = document.getElementById('cp-target').value;
+  const years = parseInt(document.getElementById('cp-years').value)||0;
+  const qual = document.getElementById('cp-qual').value;
+  if(!curPos||!tgtPos){ alert('Please select both your current and target role.'); return; }
+  if(curPos===tgtPos){ alert('Your current and target role are the same. Please choose a different target.'); return; }
+  const cur = ROLES.find(r=>r.pos===curPos);
+  const tgt = ROLES.find(r=>r.pos===tgtPos);
+  if(!cur||!tgt) return;
+  const intermediates = ROLES.filter(r=>r.pos!==cur.pos&&r.pos!==tgt.pos&&r.bandN>cur.bandN&&r.bandN<tgt.bandN).sort((a,b)=>a.bandN-b.bandN).slice(0,2);
+  const path = [cur,...intermediates,tgt];
+  const qScore = {diploma:1,bachelor:2,masters:3,professional:2.5,both:3.5,'masters-prof':4}[qual]||0;
+
+  function gaps(role,isCurrent){
+    if(isCurrent) return [];
+    const q=(role.quals||'').toLowerCase();
+    const g=[];
+    if(q.includes('master')){ g.push({ok:qScore>=3,text:"Master's degree"}); }
+    if(q.includes('bachelor')&&!q.includes('master')){ g.push({ok:qScore>=2,text:"Bachelor's degree"}); }
+    if(q.includes('chrp')){ g.push({ok:['both','masters-prof','professional'].includes(qual),text:'CHRP qualification'}); }
+    if(q.includes('ihrm practicing')){ g.push({ok:qScore>=3.5,text:'IHRM Practicing License'}); }
+    if((q.includes('cpa')||q.includes('acca'))&&!q.includes('hRM')){ g.push({ok:qScore>=2.5,text:'Professional accounting qualification (CPA/ACCA)'}); }
+    const expMatch=(role.exp||'').match(/(\d+)/);
+    const needed=expMatch?parseInt(expMatch[1]):0;
+    if(needed){ g.push({ok:years>=needed,text:`${needed}+ years of experience (you have ${years})`}); }
+    return g.length?g:[{ok:true,text:'Qualifications and experience appear aligned'}];
+  }
+
+  let html=`<div class="path-header"><div style="font-size:32px">&#127919;</div><div><h3>Your path: ${cur.pos} &#8594; ${tgt.pos}</h3><p>${path.length-1} step${path.length>2?'s':''} &middot; ${cur.band} &#8594; ${tgt.band} &middot; ${cur.bu} to ${tgt.bu}</p></div></div><div class="path-steps">`;
+  path.forEach((role,i)=>{
+    const isFirst=i===0, isLast=i===path.length-1;
+    const tag=isFirst?'YOUR CURRENT ROLE':isLast?'TARGET ROLE':`STEP ${i}`;
+    const g=gaps(role,isFirst);
+    html+=`<div class="path-step"><div class="step-spine"><div class="step-dot${isFirst?' current':''}">${isFirst?'&#9733;':(i+1)}</div>${!isLast?'<div class="step-line"></div>':''}</div><div class="step-body"><div class="step-tag">${tag}</div><div class="step-role">${role.pos}</div><div class="step-meta">${role.bu} &middot; ${role.band}${role.level?' &middot; '+role.level:''}</div>${!isFirst&&g.length?`<div class="step-gaps">${g.map(x=>`<div class="gap-item"><span class="${x.ok?'gap-ok':'gap-miss'}">${x.ok?'&#10003;':'&#10007;'}</span><span>${x.text}</span></div>`).join('')}</div>`:''}${!isFirst?`<div style="font-size:11px;color:var(--text-light);margin-top:6px">Experience required: ${role.exp||'See role detail'}</div>`:''}${!isFirst?`<div style="font-size:11px;color:var(--text-light);margin-top:2px">Qualifications: ${role.quals||'See role detail'}</div>`:''}
+    </div></div>`;
+  });
+  html+=`</div><div class="reco-box"><h4>&#128161; Recommended next steps</h4><ul><li>Share this career plan with your HR Business Partner or line manager</li><li>Include your target role in your next Performance Development Review (PDR)</li><li>Explore L&amp;D programmes in Britam's learning catalogue to close qualification gaps</li><li>Request stretch assignments or cross-functional exposure relevant to your target BU</li><li>Review the target role detail and note any certifications to begin working towards</li></ul></div><div class="cp-actions"><button class="cp-action-btn primary" onclick="window.print()">&#128424; Print my career plan</button><button class="cp-action-btn secondary" onclick="openModal(${ROLES.indexOf(tgt)})">View target role in full</button></div>`;
+  const res=document.getElementById('cp-result');
+  res.innerHTML=html; res.classList.add('show');
+  res.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function openModal(idx){
+  const r=ROLES[idx];
+  document.getElementById('modal-body').innerHTML=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px">
+      <div class="modal-title">${r.pos}</div>
+      <span class="band-badge ${bc(r.band)}" style="margin-top:6px">${r.band}</span>
+    </div>
+    <div class="modal-bu">${r.bu}${r.level?' &middot; '+r.level:''}</div>
+    <div class="modal-section"><div class="modal-section-title">Role purpose</div><div class="modal-section-body">${r.desc}</div></div>
+    ${r.quals?`<div class="modal-section"><div class="modal-section-title">Qualifications required</div><div class="modal-section-body">${r.quals}</div></div>`:''}
+    ${r.exp?`<div class="modal-section"><div class="modal-section-title">Experience required</div><div class="modal-section-body">${r.exp}</div></div>`:''}
+    ${r.focus?`<div class="modal-section"><div class="modal-section-title">Key focus areas</div><div class="focus-tags">${r.focus.split(',').map(f=>`<span class="focus-tag">${f.trim()}</span>`).join('')}</div></div>`:''}
+    ${r.kras?`<div class="modal-section"><div class="modal-section-title">Key performance measures</div><div class="modal-section-body">${r.kras}</div></div>`:''}
+    ${r.reports?`<div class="modal-section"><div class="modal-section-title">Direct reports</div><div class="modal-section-body">${r.reports}</div></div>`:''}
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="closeModal();showPage('career');setTimeout(()=>{document.getElementById('cp-target').value='${r.pos.replace(/'/g,"\\'")}'},100)">Set as my target role &#8594;</button>
+      <button class="modal-btn secondary" onclick="closeModal();showPage('compare')">Compare this role</button>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+// ─── AI ASSISTANT ───────────────────────────────────────────────────────────
+// To enable: replace the empty string below with your Anthropic API key
+// e.g.  const AI_KEY = 'sk-ant-api03-xxxxxx...';
+const AI_KEY = '';
+
+async function askAI(){
+  const input=document.getElementById('ai-q');
+  const q=input.value.trim();
+  if(!q) return;
+  const msgs=document.getElementById('ai-msgs');
+  msgs.innerHTML+=`<div class="ai-msg user">${q}</div>`;
+  input.value='';
+  if(!AI_KEY){
+    msgs.innerHTML+=`<div class="ai-msg bot">&#9888;&#65039; The AI Assistant is not yet configured. Your IT team needs to add the Anthropic API key to this file (one line). All other features &mdash; Browse, Compare, and My Career Path &mdash; work fully right now.</div>`;
+    msgs.scrollTop=msgs.scrollHeight; return;
+  }
+  msgs.innerHTML+=`<div class="ai-msg bot" id="ai-thinking">Thinking&hellip;</div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  const ctx=ROLES.map(r=>`${r.pos} (${r.bu}, ${r.band}, ${r.level}): ${r.desc}. Quals: ${r.quals}. Exp: ${r.exp}. Focus: ${r.focus}.`).join('\n');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':AI_KEY,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        system:`You are an HR assistant for Britam Group, a financial services company operating across 7 countries in Africa. Answer questions about roles, qualifications, career paths, and job bands based on the role library. Be concise and helpful.\n\nROLE LIBRARY:\n${ctx}`,
+        messages:[{role:'user',content:q}]})});
+    const data=await res.json();
+    const ans=data.content?.map(c=>c.text||'').join('')||'Could not get a response. Please try again.';
+    document.getElementById('ai-thinking').textContent=ans;
+  }catch(e){ document.getElementById('ai-thinking').textContent='Connection error. Please try again.'; }
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+init();
+</script>
+</body>
+</html>
