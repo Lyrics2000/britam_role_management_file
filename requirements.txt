@@ -1,0 +1,22 @@
+# ---------------------------------------------------------------------------
+# ADR-001: Pinned to exact patch versions.
+# Rationale: `docker compose up` on the droplet must produce a byte-identical
+# dependency set months from now. Floating ranges (>=) have broken this stack
+# before when a transitive release changed behaviour mid-deploy.
+# Upgrade deliberately: bump here, run tests, commit.
+# ---------------------------------------------------------------------------
+
+Django==5.0.14
+djangorestframework==3.15.2
+django-filter==24.3
+gunicorn==23.0.0
+whitenoise==6.7.0
+python-dotenv==1.0.1
+requests==2.32.3
+
+# --- dev / test only (installed in the image so `docker compose exec` can run
+#     the suite against the real container; harmless in production) ----------
+pytest==8.3.3
+pytest-django==4.9.0
+pytest-cov==5.0.0
+model-bakery==1.19.5

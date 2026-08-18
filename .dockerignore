@@ -1,0 +1,37 @@
+# Keep the build context small and secrets out of the image.
+.git
+.gitignore
+.github
+docker-compose*.yml
+.dockerignore
+Dockerfile
+README.md
+*.md
+
+
+
+# Local artefacts
+data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+staticfiles/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# The BACKUP copy of the page is not needed at runtime; only
+# Britam_Role_Library.html is read by the seeder.
+Britam_Role_Library.BACKUP.html

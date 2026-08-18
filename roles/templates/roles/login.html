@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in &middot; Britam Group Role Library</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+:root{--green:#006B3C;--green-light:#E8F5EE;--gold:#C9A84C;--bg:#F7F6F2;--surface:#FFFFFF;--border:#E4E2DB;--text:#1A1A18;--text-mid:#555550;--text-light:#888880;--radius:10px;--shadow:0 2px 12px rgba(0,0,0,0.07)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:2rem;width:100%;max-width:400px}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem}
+.brand-logo{background:var(--green);border-radius:6px;padding:5px 11px;font-family:'DM Serif Display',serif;font-size:14px;color:#fff;letter-spacing:1px}
+.brand-title{font-size:15px;font-weight:600}
+.brand-sub{font-size:11px;color:var(--text-light);margin-top:1px}
+h1{font-size:16px;font-weight:600;margin-bottom:6px}
+.lead{font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:1.5rem}
+.field{margin-bottom:1rem}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.field input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color 0.2s;background:var(--surface);color:var(--text)}
+.field input:focus{border-color:var(--green)}
+.btn{width:100%;background:var(--green);color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.2s}
+.btn:hover{opacity:0.88}
+.err{background:#FDEDEC;color:#7B241C;border:1px solid rgba(123,36,28,0.25);border-radius:8px;padding:10px 13px;font-size:12px;margin-bottom:1rem;line-height:1.5}
+.back{display:block;text-align:center;margin-top:1.25rem;font-size:12px;color:var(--green);text-decoration:none}
+.back:hover{text-decoration:underline}
+.note{margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);font-size:11px;color:var(--text-light);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-logo">BRITAM</div>
+    <div>
+      <div class="brand-title">Group Role Library</div>
+      <div class="brand-sub">Editor sign in</div>
+    </div>
+  </div>
+
+  <h1>Sign in to edit roles</h1>
+  <p class="lead">Browsing, comparing and career paths are open to everyone &mdash; you only need an account to add or change role data.</p>
+
+  {% if form.errors %}
+    <div class="err">
+      {% if form.non_field_errors %}
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+      {% else %}
+        Please check your username and password and try again.
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if next and not form.errors %}
+    <div class="err" style="background:var(--green-light);color:#1A3D2B;border-color:rgba(0,107,60,0.2)">
+      Please sign in to continue.
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'login' %}">
+    {% csrf_token %}
+    <div class="field">
+      <label for="id_username">Username</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
+    </div>
+    <div class="field">
+      <label for="id_password">Password</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+    </div>
+    <input type="hidden" name="next" value="{{ next|default:'/?page=manage' }}">
+    <button class="btn" type="submit">Sign in</button>
+  </form>
+
+  <a class="back" href="/">&#8592; Back to the role library</a>
+
+  <div class="note">
+    No account? Ask whoever administers this deployment to create one for you:<br>
+    <code>docker compose exec web python manage.py createsuperuser</code>
+  </div>
+</div>
+</body>
+</html>
