@@ -165,6 +165,7 @@ ASGI_APPLICATION = "config.asgi.application"
 # run `manage.py dumpdata roles | manage.py loaddata`. Nothing else changes.
 # ---------------------------------------------------------------------------
 
+
 SQLITE_PATH = Path(env_str("DJANGO_SQLITE_PATH", str(BASE_DIR / "data" / "db.sqlite3")))
 SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
