@@ -74,8 +74,8 @@ services:
       options:
         max-size: "5m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
 
   britam_role_mng_nginx:
     image: nginx:1.27-alpine
@@ -110,5 +110,5 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-    security_opt:
-      - no-new-privileges:true
+    # security_opt:
+    #   - no-new-privileges:true
