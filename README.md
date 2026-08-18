@@ -316,7 +316,7 @@ britam_role_management_file/
     ├── migrations/0001_initial.py
     ├── templates/roles/       role_library.html (generated), login.html
     ├── static/roles/app.js    the whole front end
-    └── tests/                 146 tests, 90% coverage
+    └── tests/                 161 tests, 90% coverage
 ```
 
 ---
@@ -341,6 +341,8 @@ the point in the code where it applies:
 | 011 | `entrypoint.sh` | gunicorn sync workers with threads |
 | 012 | `Dockerfile` | Multi-stage slim image, non-root user |
 | 013 | `roles/serializers.py` | Suppress DRF's auto `UniqueTogetherValidator` |
+| 014 | `nginx.conf` | Forward `Host` as `$http_host` so the port survives the proxy |
+| 015 | `config/settings.py` | Derive CSRF trusted origins from ALLOWED_HOSTS + PUBLIC_PORT |
 
 ---
 
@@ -382,6 +384,29 @@ manage.py seed_roles`.
 
 **Sign-in returns to the login page with no error** — `DJANGO_BEHIND_TLS_PROXY=1`
 without real HTTPS in front. Set it back to `0`.
+
+**`Forbidden (403) — CSRF verification failed` when submitting the login form**
+— Django compares the browser's `Origin` header against the host it sees, and
+they disagree. Two causes:
+
+1. *An old `nginx.conf`.* Versions before this fix forwarded `Host` with
+   nginx's `$host`, which drops the `:6519` port. Confirm yours contains
+   `proxy_set_header Host $http_host;` and restart:
+   `docker compose restart nginx`.
+2. *`PUBLIC_PORT` does not match the port users type.* If you changed the
+   `ports:` mapping in `docker-compose.yml`, set `PUBLIC_PORT` in `.env` to the
+   new host port (or blank for 80/443) and `docker compose up -d`.
+
+Check what the app currently trusts:
+
+```bash
+docker compose exec web python -c "
+from django.conf import settings; import django; django.setup()
+print(settings.CSRF_TRUSTED_ORIGINS)"
+```
+
+The origin the browser shows in DevTools → Network → the failing request →
+Request Headers → `Origin` must appear in that list.
 
 **429 responses under normal use** — the rate limits assume a handful of
 concurrent users. Raise `THROTTLE_ROLES_READ` in `.env` and the `general` zone

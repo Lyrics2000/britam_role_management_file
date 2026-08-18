@@ -100,8 +100,53 @@ if not DEBUG and "*" in ALLOWED_HOSTS:
         "List the real hostnames, e.g. 'roles.britam.com,164.90.x.x'."
     )
 
-# Django >= 4 requires the scheme in CSRF_TRUSTED_ORIGINS.
-CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+# Django >= 4 requires the scheme in CSRF_TRUSTED_ORIGINS. The final value is
+# assembled further down, once the TLS setting is known — see
+# derive_csrf_trusted_origins().
+EXPLICIT_CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+# The port the site is published on, as the browser sees it (6519 by default,
+# per docker-compose.yml). Only needed so the origin list below can include it;
+# leave blank when the site is served on the scheme's default port.
+PUBLIC_PORT = env_str("PUBLIC_PORT", "6519").strip()
+
+
+def derive_csrf_trusted_origins(
+    hosts: list[str], scheme: str, port: str = "", explicit: list[str] | None = None
+) -> list[str]:
+    """Build CSRF_TRUSTED_ORIGINS from the hosts we already trust.
+
+    Why this exists
+    ---------------
+    Django >= 4.0 rejects an unsafe request whose `Origin` header does not
+    match the origin it reconstructs from the `Host` header. A reverse proxy
+    that forwards `Host` without the port (nginx's `$host`) makes those two
+    disagree on any non-default port, and every POST — including the login
+    form — fails with "CSRF verification failed".
+
+    nginx.conf now forwards `$http_host`, which fixes the cause. This function
+    is the second layer: it explicitly trusts the site's own origins, so a
+    misconfigured or replaced proxy cannot silently lock editors out again.
+
+    This is not a loosening of CSRF protection. Every entry is derived from
+    DJANGO_ALLOWED_HOSTS — hosts the deployment already declares as its own —
+    and only for the scheme actually in use.
+    """
+    origins = list(explicit or [])
+    for host in hosts:
+        host = host.strip()
+        if not host or host == "*":
+            continue
+        # ".example.com" in ALLOWED_HOSTS means "any subdomain"; the CSRF
+        # setting spells the same idea "https://*.example.com".
+        candidate = f"*{host}" if host.startswith(".") else host
+        for variant in (candidate, f"{candidate}:{port}" if port else ""):
+            if not variant:
+                continue
+            origin = f"{scheme}://{variant}"
+            if origin not in origins:
+                origins.append(origin)
+    return origins
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -164,7 +209,6 @@ ASGI_APPLICATION = "config.asgi.application"
 # Migration path if this ever outgrows SQLite: swap this block for Postgres and
 # run `manage.py dumpdata roles | manage.py loaddata`. Nothing else changes.
 # ---------------------------------------------------------------------------
-
 
 SQLITE_PATH = Path(env_str("DJANGO_SQLITE_PATH", str(BASE_DIR / "data" / "db.sqlite3")))
 SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -258,6 +302,13 @@ if BEHIND_TLS_PROXY:
     SECURE_HSTS_SECONDS = env_int("DJANGO_HSTS_SECONDS", 60 * 60 * 24 * 30)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = False
+
+CSRF_TRUSTED_ORIGINS = derive_csrf_trusted_origins(
+    hosts=ALLOWED_HOSTS,
+    scheme="https" if BEHIND_TLS_PROXY else "http",
+    port=PUBLIC_PORT,
+    explicit=EXPLICIT_CSRF_TRUSTED_ORIGINS,
+)
 
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

@@ -12,6 +12,8 @@ from django.conf import settings
 from django.db import DatabaseError, connection, transaction
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import TemplateView
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -39,11 +41,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+@method_decorator(ensure_csrf_cookie, name="dispatch")
 class RoleLibraryView(TemplateView):
     """Serves the single-page app.
 
     The page no longer carries data in its source; it fetches /api/roles/ on
     load. Only the flags the template needs are rendered server-side.
+
+    ensure_csrf_cookie guarantees the `csrftoken` cookie is set on every
+    render. Without it the cookie only appeared as a side effect of the header
+    rendering the sign-out form's {% csrf_token %} — so the Manage tab's
+    X-CSRFToken header depended on an unrelated bit of markup staying put.
     """
 
     template_name = "roles/role_library.html"
