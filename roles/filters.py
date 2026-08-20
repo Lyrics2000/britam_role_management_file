@@ -27,5 +27,22 @@ class RoleFilter(filters.FilterSet):
         model = Role
         fields = ("q", "bu", "bu_id", "band", "band_min", "band_max", "level", "active")
 
+    # Band filters are editor-only. Without this, masking would be trivially
+    # defeated: an anonymous caller could send ?band=Band%201 and read the
+    # grading of every role back out of which ones the filter returns.
+    # See ADR-019 in roles/serializers.py.
+    BAND_FILTERS = ("band", "band_min", "band_max")
+
+    def filter_queryset(self, queryset):
+        request = getattr(self, "request", None)
+        user = getattr(request, "user", None)
+        may_filter_by_band = bool(user and user.is_authenticated and user.is_staff)
+
+        for name, value in self.form.cleaned_data.items():
+            if name in self.BAND_FILTERS and not may_filter_by_band:
+                continue
+            queryset = self.filters[name].filter(queryset, value)
+        return queryset
+
     def filter_search(self, queryset, name, value):
         return queryset.search(value)

@@ -364,3 +364,39 @@ class AIRequestLog(models.Model):
     def __str__(self) -> str:
         status = "ok" if self.succeeded else f"fail:{self.error_code or '?'}"
         return f"AI {status} {self.created_at:%Y-%m-%d %H:%M} {self.question[:40]!r}"
+
+
+class LoginAttempt(models.Model):
+    """One row per sign-in attempt, and the brute-force limiter's storage.
+
+    ADR-016: this moved into the application when the nginx sidecar was
+    removed. Previously /accounts/login/ was protected only by an nginx
+    `limit_req zone=login rate=12r/m`; with nginx configured separately on the
+    host, that protection would have depended on someone remembering to copy a
+    rate-limit zone into a file this repo does not own. Authentication
+    hardening should not be optional infrastructure.
+
+    Stored in the database rather than the cache because Django's LocMemCache
+    is per gunicorn worker: with 3 workers a cache-based counter would let
+    through 3x the intended attempts, and would reset on every deploy.
+    """
+
+    created_at = models.DateTimeField(default=timezone.now, editable=False, db_index=True)
+    ip = models.GenericIPAddressField(null=True, blank=True, db_index=True)
+    username = models.CharField(max_length=150, db_index=True)
+    succeeded = models.BooleanField(default=False, db_index=True)
+    user_agent = models.CharField(max_length=200, blank=True)
+    request_id = models.CharField(max_length=36, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "login attempt"
+        verbose_name_plural = "login attempts"
+        indexes = [
+            models.Index(fields=["ip", "-created_at"], name="login_ip_time_idx"),
+            models.Index(fields=["username", "-created_at"], name="login_user_time_idx"),
+        ]
+
+    def __str__(self) -> str:
+        outcome = "ok" if self.succeeded else "failed"
+        return f"{outcome} login for {self.username!r} from {self.ip} at {self.created_at:%Y-%m-%d %H:%M}"

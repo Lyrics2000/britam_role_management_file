@@ -36,6 +36,28 @@ from roles.serializers import (
 logger = logging.getLogger(__name__)
 
 
+def may_see_bands(request) -> bool:
+    """Job bands are editor-only. See ADR-019 in roles/serializers.py."""
+    user = getattr(request, "user", None)
+    return bool(user and user.is_authenticated and user.is_staff)
+
+
+def band_rank_map() -> dict:
+    """{band_numeric: dense rank}, 1 = most senior (lowest band number).
+
+    Roles with no numeric band sort last and share the final rank. One query,
+    cached per request by the caller.
+    """
+    values = (
+        Role.objects.active()
+        .exclude(band_numeric__isnull=True)
+        .values_list("band_numeric", flat=True)
+        .distinct()
+    )
+    ordered = sorted(set(values))
+    return {value: index for index, value in enumerate(ordered, start=1)}
+
+
 # ---------------------------------------------------------------------------
 # Public page
 # ---------------------------------------------------------------------------
@@ -140,6 +162,13 @@ class RoleViewSet(viewsets.ModelViewSet):
         )
         return super().get_throttles()
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["mask_bands"] = not may_see_bands(self.request)
+        # Computed once per request, not once per row.
+        context["band_ranks"] = band_rank_map()
+        return context
+
     def perform_create(self, serializer):
         role = serializer.save()
         role._audit_actor = self.request.user
@@ -201,9 +230,15 @@ class MetaView(APIView):
             .order_by("display_order", "name")
         )
 
+        # An anonymous caller must not be able to read the grading scale out of
+        # the filter vocabulary either — that would hand over the full list of
+        # bands in one request, which is exactly what the masking prevents.
+        show_bands = may_see_bands(request)
+
         payload = {
             "business_units": list(populated_units.values("id", "name", "slug", "role_count")),
-            "bands": sorted(bands, key=band_sort_key),
+            "bands": sorted(bands, key=band_sort_key) if show_bands else [],
+            "bands_masked": not show_bands,
             "levels": sorted(
                 row["level"]
                 for row in active.exclude(level="").values("level").distinct()
@@ -211,7 +246,7 @@ class MetaView(APIView):
             "counts": {
                 "roles": active.count(),
                 "business_units": populated_units.count(),
-                "bands": len(bands),
+                "bands": len(bands) if show_bands else 0,
                 "levels": active.exclude(level="").values("level").distinct().count(),
             },
             "ai_enabled": bool(settings.ANTHROPIC_API_KEY),

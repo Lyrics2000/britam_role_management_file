@@ -160,6 +160,17 @@ INSTALLED_APPS = [
     "roles.apps.RolesConfig",
 ]
 
+# ADR-017: gzip is applied in the application now that the nginx sidecar is
+# gone. The role list is ~430 KB of JSON and compresses to roughly 60 KB, which
+# matters a great deal on a phone. If the host's nginx also gzips, it simply
+# sees an already-compressed response and passes it through.
+#
+# BREACH: compressing a response that contains a CSRF token is the classic
+# concern. Django masks the CSRF token with a fresh random value on every
+# render precisely to defeat that analysis, so this combination is safe. Set
+# DJANGO_GZIP=0 if your security review disagrees.
+ENABLE_GZIP = env_bool("DJANGO_GZIP", default=True)
+
 MIDDLEWARE = [
     # RequestIDMiddleware first so every downstream log line carries the id.
     "roles.middleware.RequestIDMiddleware",
@@ -171,8 +182,16 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Adds the headers the nginx sidecar used to add (Permissions-Policy and
+    # friends), so they no longer depend on a proxy config this repo does not own.
+    "roles.middleware.SecurityHeadersMiddleware",
     "roles.middleware.AccessLogMiddleware",
 ]
+
+if ENABLE_GZIP:
+    # Must sit above anything that alters content; Django's own docs place it
+    # near the top of the stack.
+    MIDDLEWARE.insert(1, "django.middleware.gzip.GZipMiddleware")
 
 ROOT_URLCONF = "config.urls"
 
@@ -284,6 +303,14 @@ STORAGES = {
 }
 WHITENOISE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days, matching the old nginx policy
 
+# In the container, entrypoint.sh runs collectstatic and WhiteNoise serves the
+# hashed files out of STATIC_ROOT. Under `runserver` and in the test suite
+# there is no STATIC_ROOT, so point WhiteNoise at the app's own static
+# directories instead — otherwise every asset 404s locally and the page loads
+# unstyled with no JavaScript.
+WHITENOISE_USE_FINDERS = DEBUG or RUNNING_TESTS
+WHITENOISE_AUTOREFRESH = DEBUG or RUNNING_TESTS
+
 # ---------------------------------------------------------------------------
 # Security headers / cookies
 #
@@ -308,6 +335,36 @@ CSRF_TRUSTED_ORIGINS = derive_csrf_trusted_origins(
     scheme="https" if BEHIND_TLS_PROXY else "http",
     port=PUBLIC_PORT,
     explicit=EXPLICIT_CSRF_TRUSTED_ORIGINS,
+)
+
+# ---------------------------------------------------------------------------
+# Proxy trust
+#
+# client_ip() reads X-Forwarded-For, which any client can forge. That is only
+# safe when a proxy we control overwrites the header, and when the app is not
+# reachable except through that proxy. The compose file binds the published
+# port to 127.0.0.1, so only the host's nginx can connect.
+#
+# Set this to 0 if you ever expose the container directly; IP-based throttling
+# and the login limiter then key off REMOTE_ADDR, which cannot be spoofed.
+# ---------------------------------------------------------------------------
+
+TRUST_PROXY_HEADERS = env_bool("DJANGO_TRUST_PROXY_HEADERS", default=True)
+
+# ---------------------------------------------------------------------------
+# Sign-in brute-force limits (see roles/auth_views.py)
+# ---------------------------------------------------------------------------
+
+LOGIN_ATTEMPT_WINDOW_SECONDS = env_int("LOGIN_ATTEMPT_WINDOW_SECONDS", 900)  # 15 min
+LOGIN_MAX_ATTEMPTS_PER_IP = env_int("LOGIN_MAX_ATTEMPTS_PER_IP", 10)
+# Deliberately high: this one can be used to lock a known account out on
+# purpose. 0 disables it. See the module docstring in roles/auth_views.py.
+LOGIN_MAX_ATTEMPTS_PER_USERNAME = env_int("LOGIN_MAX_ATTEMPTS_PER_USERNAME", 50)
+
+# Permissions-Policy, previously set by the nginx sidecar.
+PERMISSIONS_POLICY = env_str(
+    "DJANGO_PERMISSIONS_POLICY",
+    "geolocation=(), microphone=(), camera=(), interest-cohort=()",
 )
 
 SESSION_COOKIE_HTTPONLY = True

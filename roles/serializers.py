@@ -77,6 +77,8 @@ class RoleSerializer(serializers.ModelSerializer):
     )
     bu = serializers.CharField(source="business_unit.name", read_only=True)
     bu_id = serializers.IntegerField(source="business_unit_id", read_only=True)
+    # Opaque seniority ordinal. See MASKING below.
+    rank = serializers.SerializerMethodField()
 
     # Legacy-compatible aliases, so the front-end keeps its original field
     # names and the career-path/compare code needs no rewrite.
@@ -119,6 +121,7 @@ class RoleSerializer(serializers.ModelSerializer):
             "techcomp",
             "leadership_competencies",
             "leadcomp",
+            "rank",
             "is_active",
             "updated_at",
         )
@@ -135,6 +138,40 @@ class RoleSerializer(serializers.ModelSerializer):
 
     def get_bandN(self, obj: Role) -> float | None:
         return float(obj.band_numeric) if obj.band_numeric is not None else None
+
+    def get_rank(self, obj: Role) -> int | None:
+        """Dense ordinal of this role's band among all bands, 1 = most senior.
+
+        The browser needs *some* way to order roles by seniority — the career
+        path builder picks intermediate steps between two roles, and Compare
+        sorts by it. Handing anonymous visitors `band_numeric` would defeat the
+        masking entirely, since 6.2 *is* the band. A dense rank preserves the
+        ordering the UI needs while disclosing nothing about the grading scale
+        itself: rank 4 says "fourth rung from the top", not "Band 6.2".
+        """
+        ranks = self.context.get("band_ranks") or {}
+        return ranks.get(obj.band_numeric)
+
+    # -- MASKING -----------------------------------------------------------
+    #
+    # ADR-019: job bands map onto the salary structure, so they are hidden from
+    # anyone not signed in as an editor. Enforced here, in the serializer,
+    # rather than by hiding the badge in JavaScript — a CSS/JS-only mask is
+    # cosmetic, and the values would still be one "View source" or one
+    # /api/roles/ request away.
+    #
+    # `rank` above is what keeps Browse, Compare and the career path working
+    # for the public without exposing the scale.
+
+    MASKED_FIELDS = ("band", "band_numeric", "bandN")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get("mask_bands"):
+            for field in self.MASKED_FIELDS:
+                if field in data:
+                    data[field] = None if field != "band" else ""
+        return data
 
     # -- field level validation -------------------------------------------
 

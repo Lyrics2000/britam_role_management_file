@@ -51,22 +51,27 @@ class TestReadAccess:
         assert client.get(API + "?q=audit").json()["count"] == 1
         assert client.get(API + "?q=zzzz").json()["count"] == 0
 
-    def test_bu_and_band_filters(self, client, role):
+    def test_bu_filter(self, client, role):
         assert client.get(API + "?bu=Internal Audit").json()["count"] == 1
-        assert client.get(API + "?band=Band 3").json()["count"] == 1
-        assert client.get(API + "?band=Band 9").json()["count"] == 0
+        assert client.get(API + "?bu=Nowhere").json()["count"] == 0
 
-    def test_band_range_filter(self, client, role):
-        assert client.get(API + "?band_min=2&band_max=4").json()["count"] == 1
-        assert client.get(API + "?band_min=5").json()["count"] == 0
+    def test_band_filters_work_for_staff(self, staff_client, role):
+        assert staff_client.get(API + "?band=Band 3").json()["count"] == 1
+        assert staff_client.get(API + "?band=Band 9").json()["count"] == 0
+
+    def test_band_range_filter_works_for_staff(self, staff_client, role):
+        assert staff_client.get(API + "?band_min=2&band_max=4").json()["count"] == 1
+        assert staff_client.get(API + "?band_min=5").json()["count"] == 0
 
     def test_meta_endpoint(self, client, role):
         payload = client.get("/api/meta/").json()
         assert payload["counts"]["roles"] == 1
         assert payload["counts"]["business_units"] == 1
-        assert payload["bands"] == ["Band 3"]
         assert payload["levels"] == ["Change Leader"]
         assert payload["business_units"][0]["name"] == "Internal Audit"
+        # Bands are editor-only; see TestBandMasking below.
+        assert payload["bands"] == []
+        assert payload["bands_masked"] is True
 
     def test_meta_omits_business_units_with_no_visible_roles(self, client, role):
         """An empty unit must not leave a dead tab in the BU filter strip."""
@@ -83,10 +88,10 @@ class TestReadAccess:
         assert payload["business_units"] == []
         assert payload["counts"]["business_units"] == 0
 
-    def test_meta_sorts_bands_numerically_not_alphabetically(self, client, business_unit):
+    def test_meta_sorts_bands_numerically_not_alphabetically(self, staff_client, business_unit):
         for band in ("Band 10", "Band 2", "Band 6.2"):
             Role.objects.create(business_unit=business_unit, position=f"R {band}", band=band)
-        assert client.get("/api/meta/").json()["bands"] == ["Band 2", "Band 6.2", "Band 10"]
+        assert staff_client.get("/api/meta/").json()["bands"] == ["Band 2", "Band 6.2", "Band 10"]
 
 
 class TestWritePermissions:
@@ -137,7 +142,7 @@ class TestCreate:
         })
         assert BusinessUnit.objects.count() == 1
 
-    def test_band_numeric_is_derived(self, staff_client, db):
+    def test_band_numeric_is_derived_and_visible_to_staff(self, staff_client, db):
         response = post_json(staff_client, API, {
             "business_unit_name": "CX", "position": "Analyst", "band": "Band 6.2",
         })

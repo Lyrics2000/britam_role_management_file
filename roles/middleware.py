@@ -6,6 +6,7 @@ import logging
 import time
 import uuid
 
+from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 
 from roles.logging_utils import get_request_id, reset_request_id, set_request_id
@@ -95,16 +96,39 @@ class AccessLogMiddleware(MiddlewareMixin):
         return response
 
 
-def client_ip(request) -> str:
-    """Real client IP behind the nginx proxy.
+class SecurityHeadersMiddleware(MiddlewareMixin):
+    """Response headers the nginx sidecar used to add.
 
-    Takes the first entry of X-Forwarded-For. This is only trustworthy because
-    nginx overwrites the header (proxy_set_header X-Forwarded-For
-    $proxy_add_x_forwarded_for) and the container port is not published beyond
-    the compose network. If the app is ever exposed directly, this must be
-    replaced with a trusted-proxy-count implementation.
+    Django's SecurityMiddleware already handles nosniff, Referrer-Policy and
+    HSTS, and XFrameOptionsMiddleware handles framing. Permissions-Policy has
+    no Django setting, so it is applied here — keeping the app's security
+    posture independent of whatever proxy sits in front of it.
     """
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()[:45]
+
+    def process_response(self, request, response):
+        policy = getattr(settings, "PERMISSIONS_POLICY", "")
+        if policy and "Permissions-Policy" not in response:
+            response["Permissions-Policy"] = policy
+        return response
+
+
+def client_ip(request) -> str:
+    """The client's IP address.
+
+    X-Forwarded-For is attacker-controlled unless a proxy we trust overwrites
+    it. settings.TRUST_PROXY_HEADERS says whether that is the case:
+
+      True  (default) the app sits behind nginx on the same host and the
+            published port is bound to 127.0.0.1, so nothing else can connect.
+            The left-most XFF entry is the real client.
+
+      False the app may be reached directly. Ignore the header entirely and
+            use REMOTE_ADDR, which cannot be forged — otherwise anyone could
+            send `X-Forwarded-For: <random>` on each request and walk straight
+            through the login limiter and the API throttles.
+    """
+    if getattr(settings, "TRUST_PROXY_HEADERS", False):
+        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()[:45]
     return (request.META.get("REMOTE_ADDR") or "")[:45]

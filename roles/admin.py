@@ -5,11 +5,12 @@ from __future__ import annotations
 import csv
 
 from django.contrib import admin, messages
+from django.db import models
 from django.db.models import Count
 from django.http import HttpResponse
 from django.utils.html import format_html
 
-from roles.models import AIRequestLog, BusinessUnit, Role, RoleRevision
+from roles.models import AIRequestLog, BusinessUnit, LoginAttempt, Role, RoleRevision
 
 ROLE_EXPORT_COLUMNS = [
     ("business_unit__name", "BU / Function"),
@@ -191,6 +192,42 @@ class AIRequestLogAdmin(admin.ModelAdmin):
     @admin.display(description="Question")
     def short_question(self, obj):
         return obj.question[:80] + ("…" if len(obj.question) > 80 else "")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(LoginAttempt)
+class LoginAttemptAdmin(admin.ModelAdmin):
+    """Sign-in attempts, and the brute-force limiter's working data.
+
+    Read-only: editing rows here would let someone clear their own lockout.
+    To release a locked-out colleague early, use the "Clear lockout" action,
+    which deletes their recorded failures rather than editing them.
+    """
+
+    list_display = ("created_at", "succeeded", "username", "ip", "request_id")
+    list_filter = ("succeeded", "created_at")
+    search_fields = ("username", "ip", "request_id")
+    date_hierarchy = "created_at"
+    ordering = ("-created_at",)
+    actions = ("clear_lockout",)
+
+    @admin.action(description="Clear lockout for the selected usernames / IPs")
+    def clear_lockout(self, request, queryset):
+        usernames = set(queryset.values_list("username", flat=True))
+        addresses = {ip for ip in queryset.values_list("ip", flat=True) if ip}
+        removed, _ = LoginAttempt.objects.filter(succeeded=False).filter(
+            models.Q(username__in=usernames) | models.Q(ip__in=addresses)
+        ).delete()
+        self.message_user(
+            request,
+            f"Cleared {removed} recorded failure(s); those users can sign in again now.",
+            messages.SUCCESS,
+        )
 
     def has_add_permission(self, request):
         return False

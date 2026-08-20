@@ -6,6 +6,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
+from roles.auth_views import ThrottledLoginView
 from roles.views import HealthView, ReadyView, RoleLibraryView
 
 urlpatterns = [
@@ -14,14 +15,10 @@ urlpatterns = [
     # --- api ---------------------------------------------------------------
     path("api/", include(("roles.urls", "roles"), namespace="api")),
     # --- auth --------------------------------------------------------------
-    path(
-        "accounts/login/",
-        auth_views.LoginView.as_view(
-            template_name="roles/login.html",
-            redirect_authenticated_user=True,
-        ),
-        name="login",
-    ),
+    # ThrottledLoginView, not the plain LoginView: brute-force protection used
+    # to come from the nginx sidecar's `limit_req zone=login` and now lives in
+    # the application. See ADR-016.
+    path("accounts/login/", ThrottledLoginView.as_view(), name="login"),
     path(
         "accounts/logout/",
         auth_views.LogoutView.as_view(),

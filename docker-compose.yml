@@ -1,9 +1,20 @@
 ############################################################################
-# Britam Group Role Library — Django + SQLite behind nginx.
+# Britam Group Role Library — Django + SQLite, single container.
+#
+# There is no nginx service here — nginx runs on the host and proxies to this
+# container. A ready server block is in nginx-host.conf.
+#
+# WHERE IS IT LISTENING?
+#   PUBLISH_ADDRESS in .env decides, default 127.0.0.1:
+#     127.0.0.1  only this machine can connect (correct once host nginx is in
+#                front). http://localhost:6519 works ON this machine; from
+#                another machine you reach it through nginx on port 80.
+#     0.0.0.0    reachable from anywhere, e.g. http://10.10.4.103:6519.
+#                Handy while testing; see the note on ports: below.
 #
 #   docker compose up -d --build
 #
-# On first boot the `web` container migrates, then loads every role from
+# On first boot the  container migrates, then loads every role from
 # Britam_Role_Library.html into SQLite. The site then reads from SQLite, and
 # staff can edit or add roles through the Manage tab and /admin/.
 #
@@ -35,11 +46,25 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-    # No ports: — the app is only reachable through nginx below. Publishing
-    # 8000 as well would expose gunicorn directly and bypass the proxy's
-    # rate limits and headers.
-    expose:
-      - "8000"
+    ports:
+      ######################################################################
+      # THIS is what was missing. With only `expose:` and no `ports:`, the
+      # container listens on 8000 inside the compose network and nothing is
+      # mapped to the host, so a browser cannot reach it. That was fine while
+      # the nginx sidecar proxied to it; with the sidecar gone, the mapping
+      # has to live here.
+      #
+      # ADR-018: the host side defaults to 127.0.0.1, not 0.0.0.0. Docker
+      # publishes ports by writing iptables rules consulted BEFORE ufw's, so
+      # a bare "6519:8000" is reachable from the internet even with
+      # `ufw deny 6519` set. gunicorn's sync workers also do not buffer slow
+      # requests, so exposing them directly invites slowloris.
+      #
+      # PUBLISH_ADDRESS=0.0.0.0 in .env opens it up for testing. Set
+      # DJANGO_TRUST_PROXY_HEADERS=0 while it is open, or anyone can forge
+      # X-Forwarded-For and walk through the rate limits.
+      ######################################################################
+      - "${PUBLISH_ADDRESS:-127.0.0.1}:${PUBLIC_PORT:-6519}:8000"
     volumes:
       - britam_role_data:/data
     env_file:
@@ -77,38 +102,4 @@ services:
     # security_opt:
     #   - no-new-privileges:true
 
-  britam_role_mng_nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      britam_role_mng:
-        condition: service_healthy
-    networks:
-      - app-network
-
-    ports:
-      # host:container — unchanged from the previous deployment
-      - "6519:80"
-
-
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./:/app
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost/healthz"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: 64m
-    logging:
-      driver: json-file
-      options:
-        max-size: "5m"
-        max-file: "2"
-    # security_opt:
-    #   - no-new-privileges:true
+ 

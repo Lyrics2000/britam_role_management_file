@@ -9,6 +9,10 @@ On `docker compose up`, the container migrates the database, loads every role
 out of `Britam_Role_Library.html` into SQLite, and serves the site from the
 database from that point on.
 
+The stack is a **single container** listening on `127.0.0.1:6519`. nginx is
+expected to run on the host and proxy to it — a ready server block is in
+[`nginx-host.conf`](nginx-host.conf).
+
 ---
 
 ## Quick start
@@ -32,10 +36,16 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 #      DJANGO_SUPERUSER_PASSWORD=<a passphrase of 12+ characters>
 nano .env
 
-# 5. Build and start
+# 5. Build and start (listens on 127.0.0.1:6519 only)
 docker compose up -d --build
 
-# 6. Watch the first boot seed the database
+# 6. Put the host's nginx in front of it
+sudo cp nginx-host.conf /etc/nginx/sites-available/britam-roles
+sudo nano /etc/nginx/sites-available/britam-roles     # set server_name
+sudo ln -s /etc/nginx/sites-available/britam-roles /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# 7. Watch the first boot seed the database
 docker compose logs -f web
 ```
 
@@ -54,7 +64,16 @@ entrypoint: collecting static files
 entrypoint: starting gunicorn on 0.0.0.0:8000
 ```
 
-The site is on **http://your-host:6519** — the same port as before.
+The site is on **http://your-host:6519** — the same port as before, now served
+through the host's nginx.
+
+> **The port is bound to `127.0.0.1`.** `curl http://your-droplet-ip:6519`
+> from your laptop will not answer, and that is deliberate — see ADR-018 in
+> `docker-compose.yml`. Test from the droplet itself with
+> `curl -I http://127.0.0.1:6519/healthz`, or reach it through nginx on
+> port 80. If you need it exposed directly for a moment, change the `ports:`
+> entry to `"${PUBLIC_PORT:-6519}:8000"` and set
+> `DJANGO_TRUST_PROXY_HEADERS=0` while it is.
 
 | URL | What it is | Who can reach it |
 | --- | --- | --- |
@@ -221,7 +240,7 @@ everything else works.
 # Status and logs
 docker compose ps
 docker compose logs -f web
-docker compose logs -f nginx
+sudo tail -f /var/log/nginx/error.log      # nginx lives on the host now
 
 # Restart / stop
 docker compose restart web
@@ -258,6 +277,109 @@ docker compose exec web python -m pytest roles/tests/test_legacy_parser.py -v
 
 ---
 
+## Job bands are editor-only
+
+Bands map onto the salary structure, so they are hidden from anyone who is not
+signed in as an editor (ADR-019).
+
+| | Anonymous visitor | Signed-in editor |
+| --- | --- | --- |
+| Band badge on role cards / modal | hidden | shown |
+| Band filter dropdown | hidden | shown |
+| "Job band" row in Compare | omitted | shown |
+| Band in the career-path steps | omitted | shown |
+| Third stat tile | "Leadership Levels" | "Job Bands" |
+| `band` / `bandN` in `/api/roles/` | `""` / `null` | real values |
+| `bands` list in `/api/meta/` | `[]` | full vocabulary |
+| `?band=` / `?band_min=` filters | ignored | applied |
+| `/admin/`, CSV and JSON exports | n/a | real values |
+
+The stripping happens in the serializer, not in CSS or JavaScript. A cosmetic
+mask would leave the values one "View source" or one `/api/roles/` request
+away. The band filter parameters are ignored for anonymous callers for the same
+reason: `?band=Band%201` narrowing the result set would disclose the grading of
+every role by omission.
+
+**Browse, Compare and My Career Path keep working**, because the API sends
+`rank` instead — a dense ordinal over the distinct bands, 1 = most senior.
+It preserves the ordering the UI needs ("fourth rung down") without disclosing
+the scale ("Band 6.2"). Career paths still find the right intermediate steps;
+they just do not print a band on each step.
+
+To verify masking on the live site:
+
+```bash
+# Should print an empty set and no "Band" anywhere
+curl -s 'http://127.0.0.1:6519/api/roles/?page_size=2000' \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print({r['band'] for r in d['results']})"
+
+# Should print []
+curl -s http://127.0.0.1:6519/api/meta/ | python3 -c "import sys,json; print(json.load(sys.stdin)['bands'])"
+```
+
+To show bands publicly again, remove the `mask_bands` line from
+`RoleViewSet.get_serializer_context` in `roles/views.py` — but the tests in
+`roles/tests/test_band_masking.py` will then fail, which is intended.
+
+---
+
+## Why there is no nginx container
+
+nginx runs on the host instead, so this stack ships one container. Everything
+the sidecar used to enforce still holds, because it was moved into the
+application rather than deleted:
+
+| What nginx did | Where it lives now |
+| --- | --- |
+| Serve `/static/` | WhiteNoise, inside the app (ADR-004) |
+| gzip responses | `GZipMiddleware`, `DJANGO_GZIP=1` (ADR-017) |
+| `Permissions-Policy` header | `SecurityHeadersMiddleware` |
+| nosniff / frame / referrer headers | Django's `SecurityMiddleware` (always did) |
+| API rate limits | DRF throttles, `THROTTLE_*` in `.env` |
+| **Login brute-force limit** | **`roles/auth_views.py`, database-backed (ADR-016)** |
+| `X-Request-ID` | `RequestIDMiddleware` generates one when absent |
+| Body size cap | `DATA_UPLOAD_MAX_MEMORY_SIZE` |
+| Buffering slow requests | The host's nginx — see the warning below |
+
+The login limiter is the important one. It was previously *only* an nginx
+`limit_req zone=login rate=12r/m`; leaving it out would have meant the sign-in
+form had no brute-force protection at all unless someone remembered to copy a
+rate-limit zone into a file outside this repository. It now enforces two
+counters over a rolling 15-minute window, tunable in `.env`:
+
+* **10 failures per IP** — stops a script hammering one address.
+* **50 failures per username, from any address** — stops credential stuffing
+  spread across many IPs. Set deliberately high, because a low value lets
+  anyone lock a colleague out on purpose; `LOGIN_MAX_ATTEMPTS_PER_USERNAME=0`
+  disables it.
+
+A successful sign-in clears that identity's failures. Attempts are visible in
+`/admin/roles/loginattempt/`, and rows age out automatically.
+
+**Do run something in front of it.** gunicorn's sync workers do not buffer
+requests, so a handful of slow connections can occupy every worker. The
+`127.0.0.1` binding means only the host's nginx can reach the app, which
+handles that; do not change it to `0.0.0.0` and leave it there.
+
+### Checking the proxy is wired up correctly
+
+```bash
+# On the droplet — the app itself
+curl -I http://127.0.0.1:6519/healthz
+
+# Through nginx
+curl -I http://roles.example.com/healthz
+
+# Does Django see the real client IP, or nginx's?
+docker compose logs web | tail -5      # look at "client_ip" in the JSON
+```
+
+If `client_ip` shows `127.0.0.1` for every request, nginx is not sending
+`X-Forwarded-For` — check `proxy_set_header X-Forwarded-For` in your server
+block. IP-based limits are useless until that is right.
+
+---
+
 ## Enabling HTTPS
 
 Until TLS terminates in front of this stack, `docker compose exec web python
@@ -280,10 +402,11 @@ real HTTPS makes cookies secure-only and sign-in will appear to fail silently.
 
 ```
 britam_role_management_file/
-├── docker-compose.yml         web (gunicorn) + nginx, published on :6519
+├── docker-compose.yml         one service (gunicorn), bound to 127.0.0.1:6519
 ├── Dockerfile                 multi-stage python:3.12-slim, non-root
 ├── entrypoint.sh              migrate -> seed -> superuser -> static -> serve
-├── nginx.conf                 reverse proxy, rate limits, security headers
+├── nginx-host.conf            server block to copy onto the host's nginx
+├── nginx.conf                 DEPRECATED, safe to delete (was the sidecar)
 ├── .env.example               every setting, documented
 ├── requirements.txt           pinned to exact versions
 ├── build_template.py          regenerates the template from the legacy HTML
@@ -300,6 +423,7 @@ britam_role_management_file/
     ├── legacy_html.py         parser for the `const ROLES = [...]` literal
     ├── serializers.py         validation and the legacy field aliases
     ├── views.py               page, CRUD API, meta, AI proxy, probes
+    ├── auth_views.py          sign-in with brute-force limiting
     ├── filters.py             ?q= &bu= &band= &level=
     ├── permissions.py         public read, staff write
     ├── pagination.py
@@ -316,7 +440,7 @@ britam_role_management_file/
     ├── migrations/0001_initial.py
     ├── templates/roles/       role_library.html (generated), login.html
     ├── static/roles/app.js    the whole front end
-    └── tests/                 161 tests, 90% coverage
+    └── tests/                 211 tests, 92% coverage
 ```
 
 ---
@@ -343,6 +467,10 @@ the point in the code where it applies:
 | 013 | `roles/serializers.py` | Suppress DRF's auto `UniqueTogetherValidator` |
 | 014 | `nginx.conf` | Forward `Host` as `$http_host` so the port survives the proxy |
 | 015 | `config/settings.py` | Derive CSRF trusted origins from ALLOWED_HOSTS + PUBLIC_PORT |
+| 016 | `roles/models.py` | Login brute-force limiting in the app, not the proxy |
+| 017 | `config/settings.py` | gzip in the app, since the nginx sidecar is gone |
+| 018 | `docker-compose.yml` | Publish on 127.0.0.1 — Docker's iptables rules bypass ufw |
+| 019 | `roles/serializers.py` | Mask job bands server-side for non-editors; expose `rank` instead |
 
 ---
 

@@ -44,6 +44,7 @@
     slotA: null,
     slotB: null,
     loaded: false,
+    bandsMasked: true,      // assume hidden until /api/meta/ says otherwise
     deleteTarget: null
   };
 
@@ -85,6 +86,28 @@
     if (n < 8) { return 'b7'; } if (n < 9) { return 'b8'; }
     if (n < 10) { return 'b9'; }
     return 'b10';
+  }
+
+  /**
+   * How senior a role is, smaller = more senior.
+   *
+   * Editors get the real band number; everyone else gets `rank`, the opaque
+   * ordinal the API substitutes when bands are masked. Both are monotonic, so
+   * every ordering and "find the step between these two roles" calculation
+   * works identically for both audiences.
+   */
+  function seniority(role) {
+    if (!role) { return null; }
+    if (role.bandN !== null && role.bandN !== undefined) { return role.bandN; }
+    if (role.rank !== null && role.rank !== undefined) { return role.rank; }
+    return null;
+  }
+
+  /** Band badge HTML, or nothing at all when bands are masked. */
+  function badge(role, extraStyle) {
+    if (!role || !role.band) { return ''; }
+    return '<span class="band-badge ' + bc(role.band) + '"' +
+      (extraStyle ? ' style="' + extraStyle + '"' : '') + '>' + esc(role.band) + '</span>';
   }
 
   function bandSortValue(band) {
@@ -194,6 +217,7 @@
       pos: record.position || record.pos || '',
       band: record.band || '',
       bandN: (record.bandN === null || record.bandN === undefined) ? null : Number(record.bandN),
+      rank: (record.rank === null || record.rank === undefined) ? null : Number(record.rank),
       level: record.level || '',
       exp: record.experience || '',
       quals: record.qualifications || '',
@@ -223,6 +247,10 @@
         state.levels = (meta && meta.levels) || [];
         state.counts = (meta && meta.counts) || {};
         state.aiEnabled = !!(meta && meta.ai_enabled);
+        // Bands are editor-only (ADR-019). The server has already stripped the
+        // values; this flag is only so the UI does not render empty badges,
+        // an unusable filter, or a blank column in Compare.
+        state.bandsMasked = !!(meta && meta.bands_masked);
         state.loaded = true;
         return state;
       });
@@ -276,7 +304,21 @@
     };
     setText('stat-roles', counts.roles !== undefined ? counts.roles : state.roles.length);
     setText('stat-bus', counts.business_units !== undefined ? counts.business_units : state.bus.length);
-    setText('stat-bands', counts.bands !== undefined ? counts.bands : state.bands.length);
+
+    // The third tile shows the band count for editors. For everyone else that
+    // number is itself a disclosure, so show leadership levels instead — the
+    // row keeps its four cards and the grid does not reflow.
+    var bandTile = byId('stat-bands');
+    if (bandTile) {
+      var label = bandTile.parentNode ? bandTile.parentNode.querySelector('.stat-lbl') : null;
+      if (state.bandsMasked) {
+        bandTile.textContent = counts.levels !== undefined ? counts.levels : state.levels.length;
+        if (label) { label.textContent = 'Leadership Levels'; }
+      } else {
+        bandTile.textContent = counts.bands !== undefined ? counts.bands : state.bands.length;
+        if (label) { label.textContent = 'Job Bands'; }
+      }
+    }
   }
 
   function populateFilters() {
@@ -291,10 +333,18 @@
         }).join('');
     }
     if (bandFilter) {
-      bandFilter.innerHTML = '<option value="">All bands</option>' +
-        state.bands.map(function (band) {
-          return '<option value="' + esc(band) + '">' + esc(band) + '</option>';
-        }).join('');
+      if (state.bandsMasked) {
+        // Nothing to choose from, and the API ignores the parameter anyway.
+        bandFilter.style.display = 'none';
+        bandFilter.innerHTML = '<option value=""></option>';
+        bandFilter.value = '';
+      } else {
+        bandFilter.style.display = '';
+        bandFilter.innerHTML = '<option value="">All bands</option>' +
+          state.bands.map(function (band) {
+            return '<option value="' + esc(band) + '">' + esc(band) + '</option>';
+          }).join('');
+      }
     }
     if (levelFilter) {
       levelFilter.innerHTML = '<option value="">All levels</option>' +
@@ -328,7 +378,8 @@
     var options = '<option value="">Select your role&hellip;</option>' +
       state.roles.map(function (role) {
         return '<option value="' + esc(role.id) + '">' +
-          esc(role.pos) + ' (' + esc(role.bu) + ' · ' + esc(role.band) + ')</option>';
+          esc(role.pos) + ' (' + esc(role.bu) +
+          (role.band ? ' · ' + esc(role.band) : '') + ')</option>';
       }).join('');
     current.innerHTML = options;
     target.innerHTML = options.replace('Select your role&hellip;', 'Select your target role&hellip;');
@@ -381,7 +432,7 @@
     grid.innerHTML = matches.map(function (role) {
       return '<div class="role-card" data-role-id="' + esc(role.id) + '">' +
         '<div class="rc-top"><div class="rc-name">' + esc(role.pos) + '</div>' +
-        '<span class="band-badge ' + bc(role.band) + '">' + esc(role.band) + '</span></div>' +
+        badge(role) + '</div>' +
         '<div class="rc-meta">' + esc(role.bu) + (role.level ? ' · ' + esc(role.level) : '') + '</div>' +
         '<div class="rc-desc">' + esc(role.desc) + '</div>' +
         '</div>';
@@ -431,7 +482,8 @@
     drop.innerHTML = matches.map(function (role) {
       return '<div class="slot-opt" data-slot="' + esc(slot) + '" data-role-id="' + esc(role.id) + '">' +
         '<div class="slot-opt-name">' + esc(role.pos) + '</div>' +
-        '<div class="slot-opt-meta">' + esc(role.bu) + ' · ' + esc(role.band) +
+        '<div class="slot-opt-meta">' + esc(role.bu) +
+        (role.band ? ' · ' + esc(role.band) : '') +
         (role.level ? ' · ' + esc(role.level) : '') + '</div></div>';
     }).join('');
     drop.classList.add('open');
@@ -451,8 +503,9 @@
     byId('drop-' + slot).classList.remove('open');
     byId('sel-' + slot).classList.add('show');
     byId('sel-' + slot + '-name').textContent = role.pos;
+    var pillBadge = badge(role);
     byId('sel-' + slot + '-meta').innerHTML =
-      '<span class="band-badge ' + bc(role.band) + '">' + esc(role.band) + '</span> &nbsp;' + esc(role.bu);
+      (pillBadge ? pillBadge + ' &nbsp;' : '') + esc(role.bu);
     renderCompare();
   }
 
@@ -476,7 +529,9 @@
       ['Key focus areas', 'focus'], ['Key performance measures', 'kras'],
       ['Direct reports', 'reports'], ['Technical / functional competencies', 'techcomp'],
       ['Leadership competencies', 'leadcomp']
-    ];
+    ].filter(function (row) {
+      return !(state.bandsMasked && row[1] === 'band');
+    });
     table.innerHTML =
       '<tr><th>Field</th><th>' + esc(state.slotA.pos) + '</th><th>' + esc(state.slotB.pos) + '</th></tr>' +
       rows.map(function (row) {
@@ -518,20 +573,28 @@
       careerNotice('One of the selected roles is no longer available. Reload the page and try again.');
       return;
     }
-    if (current.bandN === null || target.bandN === null) {
-      careerNotice('One of the selected roles has no numeric job band, so a banded path cannot be built. Please pick another role.');
+    // seniority() is the real band number for editors and the opaque `rank`
+    // for everyone else, so the path is built identically either way.
+    var currentLevel = seniority(current);
+    var targetLevel = seniority(target);
+
+    if (currentLevel === null || targetLevel === null) {
+      careerNotice('One of the selected roles sits outside the banded structure, so a step-by-step path cannot be built. Please pick another role.');
       return;
     }
 
     var between = function (role) {
-      return role.id !== current.id && role.id !== target.id && role.bandN !== null &&
-        role.bandN > target.bandN && role.bandN < current.bandN;
+      var level = seniority(role);
+      return role.id !== current.id && role.id !== target.id && level !== null &&
+        level > targetLevel && level < currentLevel;
     };
     var pool = state.roles.filter(function (r) { return between(r) && r.bu === target.bu; });
     if (!pool.length) { pool = state.roles.filter(function (r) { return between(r) && r.bu === current.bu; }); }
     if (!pool.length) { pool = state.roles.filter(between); }
 
-    var intermediates = pool.sort(function (a, b) { return b.bandN - a.bandN; }).slice(0, 2);
+    var intermediates = pool.sort(function (a, b) {
+      return seniority(b) - seniority(a);
+    }).slice(0, 2);
     var path = [current].concat(intermediates, [target]);
 
     var qScore = ({
@@ -567,7 +630,9 @@
     var html = '<div class="path-header"><div style="font-size:32px">&#127919;</div><div>' +
       '<h3>Your path: ' + esc(current.pos) + ' &#8594; ' + esc(target.pos) + '</h3>' +
       '<p>' + (path.length - 1) + ' step' + (path.length > 2 ? 's' : '') + ' &middot; ' +
-      esc(current.band) + ' &#8594; ' + esc(target.band) + ' &middot; ' +
+      ((current.band && target.band)
+        ? esc(current.band) + ' &#8594; ' + esc(target.band) + ' &middot; '
+        : '') +
       esc(current.bu) + ' to ' + esc(target.bu) + '</p></div></div><div class="path-steps">';
 
     path.forEach(function (role, index) {
@@ -582,7 +647,8 @@
         '</div><div class="step-body">' +
         '<div class="step-tag">' + esc(tag) + '</div>' +
         '<div class="step-role">' + esc(role.pos) + '</div>' +
-        '<div class="step-meta">' + esc(role.bu) + ' &middot; ' + esc(role.band) +
+        '<div class="step-meta">' + esc(role.bu) +
+        (role.band ? ' &middot; ' + esc(role.band) : '') +
         (role.level ? ' &middot; ' + esc(role.level) : '') + '</div>';
 
       if (!isFirst && list.length) {
@@ -647,7 +713,7 @@
     byId('modal-body').innerHTML =
       '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px">' +
       '<div class="modal-title">' + esc(role.pos) + '</div>' +
-      '<span class="band-badge ' + bc(role.band) + '" style="margin-top:6px">' + esc(role.band) + '</span></div>' +
+      badge(role, 'margin-top:6px') + '</div>' +
       '<div class="modal-bu">' + esc(role.bu) + (role.level ? ' &middot; ' + esc(role.level) : '') + '</div>' +
       section('Role purpose', role.desc) +
       section('Qualifications required', role.quals) +
@@ -787,7 +853,9 @@
         return true;
       }).sort(function (a, b) {
         if (a.bu !== b.bu) { return a.bu.localeCompare(b.bu); }
-        var diff = bandSortValue(a.band) - bandSortValue(b.band);
+        var diff = (seniority(a) === null || seniority(b) === null)
+          ? bandSortValue(a.band) - bandSortValue(b.band)
+          : seniority(a) - seniority(b);
         return diff !== 0 ? diff : a.pos.localeCompare(b.pos);
       });
 
@@ -806,7 +874,7 @@
           '<td><strong>' + esc(role.pos) + '</strong>' +
           (role.is_active ? '' : ' <span style="font-size:10px;color:#C0392B">(hidden)</span>') + '</td>' +
           '<td>' + esc(role.bu) + '</td>' +
-          '<td><span class="band-badge ' + bc(role.band) + '">' + esc(role.band) + '</span></td>' +
+          '<td>' + (badge(role) || '<span style="color:var(--text-light)">&mdash;</span>') + '</td>' +
           '<td>' + esc(role.level) + '</td>' +
           '<td><div class="mg-row-actions">' +
           '<button class="mg-mini" type="button" data-edit-role="' + esc(role.id) + '">Edit</button>' +
